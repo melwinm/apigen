@@ -761,6 +761,20 @@ class Generator extends Nette\Object
 	}
 
 	/**
+	 * Prepares custom plugins.
+	 *
+	 * @return array
+	 */
+	public function preparePlugins()
+	{
+		$helpers = array();
+
+
+
+		return $helpers;
+	}
+
+	/**
 	 * Prints message if printing is enabled.
 	 *
 	 * @param string $message Output message

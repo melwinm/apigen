@@ -50,6 +50,7 @@ class Config
 		'exclude' => array(),
 		'skipDocPath' => array(),
 		'skipDocPrefix' => array(),
+		'plugin' => array(),
 		'title' => '',
 		'baseUrl' => '',
 		'googleCse' => '',
@@ -78,7 +79,8 @@ class Config
 		'config',
 		'source',
 		'destination',
-		'templateDir'
+		'templateDir',
+		'plugin'
 	);
 
 	/**
@@ -269,6 +271,14 @@ class Config
 			throw new Exception('Invalid Google Analytics tracking code', Exception::INVALID_CONFIG);
 		}
 
+		if (!empty($this->config['plugin'])) {
+			foreach ((array) $this->config['plugin'] as $path) {
+				if (!file_exists($path)) {
+					throw new Exception(sprintf('Plugin file or directory %s doesn\'t exist', $path), Exception::INVALID_CONFIG);
+				}
+			}
+		}
+
 		return $this;
 	}
 
@@ -372,6 +382,7 @@ Options:
 	--exclude          <mask>      Mask to exclude file or directory from processing (can be used multiple times)
 	--skip-doc-path    <mask>      Don't generate documentation for classes from file or directory with this mask (can be used multiple times)
 	--skip-doc-prefix  <value>     Don't generate documentation for classes with this name prefix (can be used multiple times)
+	--doc-helper       <file>      Custom docblock processing helper file (can be used multiple times)
 	--title            <value>     Title of generated documentation
 	--base-url         <value>     Documentation base URL
 	--google-cse       <value>     Google Custom Search ID
@@ -394,10 +405,9 @@ Options:
 Only source and destination directories are required - either set explicitly or using a config file.
 
 Files or directories specified by --exclude will not be processed at all.
-Classes from files within --skip-doc-path or with --skip-doc-prefix will be parsed but will not have
-their documentation generated. However if they have any child classes, the full class tree will be
-generated and their inherited methods, properties and constants will be displayed (but will not
-be clickable).
+Classes from files within --skip-doc-path or with --skip-doc-prefix will be parsed but will not have their documentation generated. However if they have any child classes, the full class tree will be generated and their inherited methods, properties and constants will be displayed (but will not be clickable).
+
+You can provide filenames with your custom docblock tag processing helpers. Such helpers can registers for particular tags and their values will be passed to the appropriate helper when generating documentation. There can be only one helper for each tag. Every helper has to be a descendat of the \ApiGen\Helper class.
 
 Configuration parameters passed via command line have precedence over parameters from a config file.
 

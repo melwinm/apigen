@@ -35,6 +35,7 @@ try {
 		'destination:',
 		'skip-doc-path:',
 		'skip-doc-prefix:',
+		'plugin:',
 		'exclude:',
 		'title:',
 		'base-url:',
@@ -87,6 +88,16 @@ try {
 	// Generating
 	$generator->output(sprintf("Searching template in %s\n", $config->templateDir));
 	$generator->output(sprintf("Using template %s\n", $config->template));
+
+	// Custom plugins
+	if (!empty($config->plugin)) {
+		$plugins = $generator->preparePlugins();
+		if (!empty($plugins)) {
+			$generator->output(sprintf("Following plugins will used\n %s\n", implode("\n ", $plugins)));
+		}
+	}
+
+	// Wipeout of the target directory
 	if ($config->wipeout && is_dir($config->destination)) {
 		$generator->output("Wiping out destination directory\n");
 		if (!$generator->wipeOutDestination()) {
