@@ -30,8 +30,9 @@ interface Plugin
 	/**
 	 * Plugin constructor.
 	 *
+	 * @param \Apigen\Generator $generator Generator instance
 	 * @param \Apigen\Template $template Template instance
 	 * @param \Apigen\Config $config Configuration
 	 */
-	public function __construct(Template $template, Config $config);
+	public function __construct(Generator $generator, Template $template, Config $config);
 }

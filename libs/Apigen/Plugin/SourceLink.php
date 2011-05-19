@@ -27,9 +27,9 @@ interface SourceLink extends Apigen\Plugin
 	/**
 	 * Returns an URL of a highlighted class source code.
 	 *
-	 * @param \Apigen\Reflection $class Class reflection
-	 * @param boolean $withLine Include a file line into the link
+	 * @param \Apigen\Reflection|\TokenReflection\IReflection $element Reflection instance
+	 * @param boolean $filesystemName Determines if a physical filename is requested
 	 * @return string
 	 */
-	public function getLink(Apigen\Reflection $class, $withLine = false);
+	public function getSourceLink($element, $filesystemName);
 }
