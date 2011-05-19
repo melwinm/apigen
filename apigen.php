@@ -23,6 +23,9 @@ require __DIR__ . '/libs/Apigen/Reflection.php';
 require __DIR__ . '/libs/Apigen/Backend.php';
 require __DIR__ . '/libs/Apigen/Generator.php';
 require __DIR__ . '/libs/Apigen/Tree.php';
+require __DIR__ . '/libs/Apigen/Plugin.php';
+require __DIR__ . '/libs/Apigen/Plugin/SourceLink.php';
+require __DIR__ . '/libs/Apigen/Plugin/AnnotationProcessor.php';
 
 try {
 
@@ -88,16 +91,6 @@ try {
 	// Generating
 	$generator->output(sprintf("Searching template in %s\n", $config->templateDir));
 	$generator->output(sprintf("Using template %s\n", $config->template));
-
-	// Custom plugins
-	if (!empty($config->plugin)) {
-		$plugins = $generator->preparePlugins();
-		if (!empty($plugins)) {
-			$generator->output(sprintf("Following plugins will used\n %s\n", implode("\n ", $plugins)));
-		}
-	}
-
-	// Wipeout of the target directory
 	if ($config->wipeout && is_dir($config->destination)) {
 		$generator->output("Wiping out destination directory\n");
 		if (!$generator->wipeOutDestination()) {

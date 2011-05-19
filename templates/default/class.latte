@@ -25,7 +25,7 @@
 		<h1>{include #title}</h1>
 
 		<div class="classDescription" n:if="$class->docComment">
-		{!$class|longDescription|docblock|resolveLinks:$class}
+		{!$class|longDescription|docblock}
 		</div>
 
 		<dl class="tree" n:if="$class->parentClass || $class->ownInterfaces">
@@ -73,12 +73,14 @@
 
 		<div class="classInfo">
 			{if $class->abstract || $class->final}<b>{if $class->abstract}Abstract{else}Final{/if} {if $class->interface}Interface{else}Class{/if}</b><br>{/if}
-			{foreach $template->annotationSort($template->annotationFilter($class->annotations)) as $annotation => $values}
+
+			{foreach $template->processBlockTags($class) as $annotation => $values}
 				{foreach $values as $value}
 					<b>{$annotation|ucfirst}{if $value}:{/if}</b>
-					{!$value|annotation:$annotation:$class}<br>
+					{!$value}<br>
 				{/foreach}
 			{/foreach}
+
 			{if $class->internal}<b>Documented at</b> <a href="{$class|manualLink}">php.net</a>{else}<b>Located at</b> <a n:tag-if="$config->sourceCode" href="{$class|sourceLink}">{$fileName}</a>{/if}<br>
 		</div>
 	</div>
@@ -119,11 +121,11 @@
 		)</code>
 
 		<div class="short">
-			{!$method|shortDescription|docblock|resolveLinks:$class}
+			{!$method|shortDescription|docblock}
 		</div>
 
 		<div class="detailed">
-			{!$method|longDescription|docblock|resolveLinks:$class}
+			{!$method|longDescription|docblock}
 
 			{var $annotations = $method->annotations}
 
@@ -168,13 +170,12 @@
 				</div>
 			{/if}
 
-			{foreach $template->annotationSort($template->annotationFilter($annotations, array('deprecated', 'param', 'return', 'throws'))) as $annotation => $descriptions}
+
+			{foreach $template->processBlockTags($method, array('deprecated', 'param', 'return', 'throws')) as $annotation => $values}
 				<h4>{$annotation|ucfirst}</h4>
 				<div class="smallList">
-				{foreach $descriptions as $description}
-					{if $description}
-						{!$description|annotation:$annotation:$class}<br>
-					{/if}
+				{foreach $values as $value}
+					{!$value}<br />
 				{/foreach}
 				</div>
 			{/foreach}
@@ -230,19 +231,17 @@
 		<td><div class="position">
 			<a href="#{$name}" class="anchor">#</a>
 			<div class="short">
-				{!$constant|shortDescription|docblock|resolveLinks:$class}
+				{!$constant|shortDescription|docblock}
 			</div>
 
 			<div class="detailed">
-				{!$constant|longDescription|docblock|resolveLinks:$class}
+				{!$constant|longDescription|docblock}
 
-				{foreach $template->annotationSort($template->annotationFilter($constant->annotations, array('var'))) as $annotation => $descriptions}
+				{foreach $template->processBlockTags($constant, array('var')) as $annotation => $values}
 					<h4>{$annotation|ucfirst}</h4>
 					<div class="smallList">
-					{foreach $descriptions as $description}
-						{if $description}
-							{!$description|annotation:$annotation:$class}<br>
-						{/if}
+					{foreach $values as $value}
+						{!$value}<br />
 					{/foreach}
 					</div>
 				{/foreach}
@@ -288,19 +287,17 @@
 			<a href="#${$property->name}" class="anchor">#</a>
 
 			<div class="short">
-				{!$property|shortDescription|docline|resolveLinks:$class}
+				{!$property|shortDescription|docline}
 			</div>
 
 			<div class="detailed">
-				{!$property|longDescription|docblock|resolveLinks:$class}
+				{!$property|longDescription|docblock}
 
-				{foreach $template->annotationSort($template->annotationFilter($property->annotations, array('var'))) as $annotation => $descriptions}
+				{foreach $template->processBlockTags($property, array('var')) as $annotation => $values}
 					<h4>{$annotation|ucfirst}</h4>
 					<div class="smallList">
-					{foreach $descriptions as $description}
-						{if $description}
-							{!$description|annotation:$annotation:$class}<br>
-						{/if}
+					{foreach $values as $value}
+						{!$value}<br />
 					{/foreach}
 					</div>
 				{/foreach}

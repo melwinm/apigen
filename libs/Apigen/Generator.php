@@ -744,11 +744,13 @@ class Generator extends Nette\Object
 
 				// Generate source codes
 				if ($this->config->sourceCode && $class->isTokenized()) {
-					$source = file_get_contents($class->getFileName());
-					$source = str_replace(array("\r\n", "\r"), "\n", $source);
+					if ($fileName = $template->getSourceLink($class, true)) {
+						$source = file_get_contents($class->getFileName());
+						$source = str_replace(array("\r\n", "\r"), "\n", $source);
 
-					$template->source = $fshl->highlightString('PHP', $source);
-					$template->setFile($templatePath . '/' . $templates['main']['source']['template'])->save($destination . '/' . $template->getSourceLink($class, false));
+						$template->source = $fshl->highlightString('PHP', $source);
+						$template->setFile($templatePath . '/' . $templates['main']['source']['template'])->save($destination . '/' . $fileName);
+					}
 
 					$this->incrementProgressBar();
 				}
@@ -758,20 +760,6 @@ class Generator extends Nette\Object
 
 		// Delete tmp directory
 		$this->deleteDir($tmp);
-	}
-
-	/**
-	 * Prepares custom plugins.
-	 *
-	 * @return array
-	 */
-	public function preparePlugins()
-	{
-		$helpers = array();
-
-
-
-		return $helpers;
 	}
 
 	/**
