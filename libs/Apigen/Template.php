@@ -638,6 +638,7 @@ class Template extends Nette\Templating\FileTemplate
 		$pluginBroker = new Broker(new Broker\Backend\Memory(), false);
 		$pluginBroker->processFile(__DIR__ . '/Plugin.php');
 		$pluginBroker->processDirectory(__DIR__ . '/Plugin');
+		$pluginBroker->processFile(__DIR__ . '/DefaultPlugin.php');
 
 		// Process plugin files and directories
 		foreach ($this->config->plugin as $path) {
