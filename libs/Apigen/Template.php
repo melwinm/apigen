@@ -490,7 +490,7 @@ class Template extends Nette\Templating\FileTemplate
 	}
 
 	/**
-	 * Texy callback pro plugin-based processing of line tags.
+	 * Texy callback for plugin-based processing of line tags.
 	 *
 	 * @param \TexyParser $parser Texy parser instance
 	 * @param array $matches Tag match definition
@@ -556,7 +556,7 @@ class Template extends Nette\Templating\FileTemplate
 	/**
 	 * Processes block tags from elements documentation.
 	 *
-	 * @param \Apigen\Reflection|\TokenReflection\ReflectionBase $element Reflection isntance
+	 * @param \Apigen\Reflection|\TokenReflection\ReflectionBase $element Reflection instance
 	 * @param array $ignore Array of ignored annotations
 	 * @return array
 	 */
@@ -651,7 +651,7 @@ class Template extends Nette\Templating\FileTemplate
 
 		// Process found classes and detect plugin types
 		$plugins = $pluginBroker->getClasses(Backend::TOKENIZED_CLASSES);
-		foreach ($plugins as $pluginName => $plugin) {
+		foreach ($plugins as $plugin) {
 			$this->registerPlugin($plugin, $generator);
 		}
 
@@ -694,7 +694,7 @@ class Template extends Nette\Templating\FileTemplate
 			$result = true;
 		}
 
-		// Plugin is a annotationProcessor
+		// Plugin is an annotationProcessor
 		if ($class->implementsInterface('Apigen\\Plugin\\AnnotationProcessor')) {
 			static $types = array(
 				Plugin\AnnotationProcessor::TYPE_BLOCK,
