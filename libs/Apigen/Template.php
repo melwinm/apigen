@@ -36,6 +36,13 @@ class Template extends Nette\Templating\FileTemplate
 	const INLINE_TAGS_REGEX = '{@(\\w+)(?:(?:\\s++((?>(?R)|[^{}]+)*)})|})';
 
 	/**
+	 * Processing contexts stack.
+	 *
+	 * @var array
+	 */
+	public static $contexts = array();
+
+	/**
 	 * Config.
 	 *
 	 * @var \Apigen\Config
@@ -79,6 +86,8 @@ class Template extends Nette\Templating\FileTemplate
 		$latte = new Nette\Latte\Engine;
 		$latte->parser->macros['try'] = '<?php try { ?>';
 		$latte->parser->macros['/try'] = '<?php } catch (\Exception $e) {} ?>';
+		$latte->parser->macros['foreach'] = '<?php foreach (%:macroForeach%): $template->context = $template->pushContext($iterator->current()) ?>';
+		$latte->parser->macros['/foreach'] = '<?php $template->context = $template->popContext(); endforeach; array_pop($_l->its); $iterator = end($_l->its); ?>';
 		$this->registerFilter($latte);
 
 		// common operations
@@ -201,6 +210,45 @@ class Template extends Nette\Templating\FileTemplate
 			sprintf('~%s~', self::INLINE_TAGS_REGEX),
 			'inlineTag'
 		);
+	}
+
+	/**
+	 * Adds a context value to the stack.
+	 *
+	 * @param mixed $context Context value
+	 * @return \Apigen\Reflection|\TokenReflection\IReflection|null
+	 */
+	public function pushContext($context)
+	{
+		array_unshift(self::$contexts, ($context instanceof ApiReflection || $context instanceof TokenReflection\IReflection) ? $context : null);
+		return $this->getContext();
+	}
+
+	/**
+	 * Removes a context from the stack.
+	 *
+	 * @return \Apigen\Reflection|\TokenReflection\IReflection|null
+	 */
+	public function popContext()
+	{
+		array_shift(self::$contexts);
+		return $this->getContext();
+	}
+
+	/**
+	 * Returns the current context.
+	 *
+	 * @return \Apigen\Reflection|\TokenReflection\IReflection|null
+	 */
+	public function getContext()
+	{
+		foreach (self::$contexts as $context) {
+			if ($context instanceof ApiReflection || $context instanceof TokenReflection\IReflection) {
+				return $context;
+			}
+		}
+
+		return null;
 	}
 
 	/**

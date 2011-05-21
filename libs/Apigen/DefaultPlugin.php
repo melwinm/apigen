@@ -144,12 +144,10 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 				// Break missing on purpose
 			case 'see':
 			case 'uses':
-				if (isset($this->template->context)) {
-					$context = $this->template->context;
-				} elseif (isset($this->template->class)) {
+				if (!empty($this->template->class)) {
 					$context = $this->template->class;
 				} else {
-					$context = null;
+					$context = $this->template->getContext();
 				}
 
 				return $this->template->resolveClassLink($value, $context) ?: $this->template->escapeHtml($value);
