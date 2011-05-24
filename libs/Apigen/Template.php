@@ -627,11 +627,11 @@ class Template extends Nette\Templating\FileTemplate
 	public function processBlockTags($element, $ignore = array())
 	{
 		// Get raw annotations
-		if (empty($ignore)) {
-			$annotations = $element->getAnnotations();
-		} else {
+		$annotations = $this->getAnnotations($element);
+
+		if (!empty($ignore)) {
 			// Ignore given tags
-			$annotations = array_diff_key($element->getAnnotations(), array_flip($ignore));
+			$annotations = array_diff_key($annotations, array_flip($ignore));
 		}
 
 		// Remove descriptions
@@ -690,6 +690,60 @@ class Template extends Nette\Templating\FileTemplate
 		}
 
 		return $annotations;
+	}
+
+	/**
+	 * Returns an array of annotations from the given reflection instance.
+	 *
+	 * Adds custom annotations created by registered generator plugins.
+	 *
+	 * @param \Apigen\Reflection|\TokenReflection\IReflection $element Reflection instance
+	 * @return array
+	 */
+	public function getAnnotations($element)
+	{
+		$annotations = $element->getAnnotations();
+		if (!empty($this->plugins[self::PLUGIN_ANNOTATION_GENERATOR])) {
+			foreach ($this->plugins[self::PLUGIN_ANNOTATION_GENERATOR] as $plugin) {
+				$customAnnotations = $plugin->getAnnotations($element);
+
+				// Descriptions cannot be merged; they are appended instead
+				if (isset($customAnnotations[ReflectionAnnotation::SHORT_DESCRIPTION])) {
+					if (isset($annotations[ReflectionAnnotation::SHORT_DESCRIPTION])) {
+						$annotations[ReflectionAnnotation::SHORT_DESCRIPTION] .= "\n\n" . $customAnnotations[ReflectionAnnotation::SHORT_DESCRIPTION];
+					} else {
+						$annotations[ReflectionAnnotation::SHORT_DESCRIPTION] = $customAnnotations[ReflectionAnnotation::SHORT_DESCRIPTION];
+					}
+					unset($customAnnotations[ReflectionAnnotation::SHORT_DESCRIPTION]);
+				}
+				if (isset($customAnnotations[ReflectionAnnotation::LONG_DESCRIPTION])) {
+					if (isset($annotations[ReflectionAnnotation::LONG_DESCRIPTION])) {
+						$annotations[ReflectionAnnotation::LONG_DESCRIPTION] .= "\n\n" . $customAnnotations[ReflectionAnnotation::LONG_DESCRIPTION];
+					} else {
+						$annotations[ReflectionAnnotation::LONG_DESCRIPTION] = $customAnnotations[ReflectionAnnotation::LONG_DESCRIPTION];
+					}
+					unset($customAnnotations[ReflectionAnnotation::LONG_DESCRIPTION]);
+				}
+
+				if (!empty($customAnnotations)) {
+					$annotations = array_merge_recursive($annotations, $customAnnotations);
+				}
+			}
+		}
+
+		return $annotations;
+	}
+
+	/**
+	 * Calls page plugins to render custom pages.
+	 */
+	public function renderCustomPages()
+	{
+		if (!empty($this->plugins[self::PLUGIN_PAGE])) {
+			foreach ($this->plugins[self::PLUGIN_PAGE] as $plugin) {
+				$plugin->renderPages();
+			}
+		}
 	}
 
 	/**

@@ -344,6 +344,9 @@ class Generator extends Nette\Object
 			$this->incrementProgressBar();
 		}
 
+		// Custom pages
+		$template->renderCustomPages();
+
 		// Optional files
 		if ($sitemapEnabled) {
 			$template->setFile($templatePath . '/' . $templates['optional']['sitemap']['template'])->save($this->getOutputPath($templates['optional']['sitemap']['filename']));

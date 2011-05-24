@@ -127,7 +127,7 @@
 		<div class="detailed">
 			{!$method|longDescription|docblock}
 
-			{var $annotations = $method->annotations}
+			{var $annotations = $template->getAnnotations($method)}
 
 			{if $method->deprecated}
 				<h4>Deprecated</h4>
