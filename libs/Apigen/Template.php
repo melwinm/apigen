@@ -657,9 +657,11 @@ class Template extends Nette\Templating\FileTemplate
 
 		// Process each annotation tag
 		foreach ($annotations as $name => $values) {
+			$searchName = strtolower(preg_replace('~^([\\w-]+).*~i', '\\1', $name));
+
 			// Find the appropriate plugin
-			if (isset($this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$name][Plugin\AnnotationProcessor::TYPE_BLOCK])) {
-				$plugin = $this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$name][Plugin\AnnotationProcessor::TYPE_BLOCK];
+			if (isset($this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$searchName][Plugin\AnnotationProcessor::TYPE_BLOCK])) {
+				$plugin = $this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$searchName][Plugin\AnnotationProcessor::TYPE_BLOCK];
 				$tagName = $plugin->getTagName($name, Plugin\AnnotationProcessor::TYPE_BLOCK);
 
 				// Remove the particular annotation
@@ -774,6 +776,7 @@ class Template extends Nette\Templating\FileTemplate
 			);
 
 			foreach ($plugin->getProcessedTags() as $tag => $options) {
+				$tag = strtolower($tag);
 				foreach ($types as $type) {
 					if ($options & $type) {
 						// Register for a particular tag and type

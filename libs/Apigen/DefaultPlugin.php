@@ -96,7 +96,8 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 			'link' => self::TYPE_BLOCK | self::TYPE_INLINE_SIMPLE,
 
 			// ignored tags
-			'property*' => self::TYPE_BLOCK,
+			'property-read' => self::TYPE_BLOCK,
+			'property-write' => self::TYPE_BLOCK,
 			'method' => self::TYPE_BLOCK,
 			'abstract' => self::TYPE_BLOCK,
 			'access' => self::TYPE_BLOCK,
@@ -104,7 +105,8 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 			'filesource' => self::TYPE_BLOCK,
 			'global' => self::TYPE_BLOCK,
 			'name' => self::TYPE_BLOCK,
-			'static*' => self::TYPE_BLOCK,
+			'static' => self::TYPE_BLOCK,
+			'staticvar' => self::TYPE_BLOCK,
 		);
 	}
 
