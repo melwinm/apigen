@@ -86,8 +86,8 @@ class Template extends Nette\Templating\FileTemplate
 		$latte = new Nette\Latte\Engine;
 		$latte->parser->macros['try'] = '<?php try { ?>';
 		$latte->parser->macros['/try'] = '<?php } catch (\Exception $e) {} ?>';
-		$latte->parser->macros['foreach'] = '<?php foreach (%:macroForeach%): $template->context = $template->pushContext($iterator->current()) ?>';
-		$latte->parser->macros['/foreach'] = '<?php $template->context = $template->popContext(); endforeach; array_pop($_l->its); $iterator = end($_l->its); ?>';
+		$latte->parser->macros['foreach'] = '<?php foreach (%:macroForeach%): if (!$iterator->isFirst()) $template->popContext(); $template->context = $template->pushContext($iterator->current()) ?>';
+		$latte->parser->macros['/foreach'] = '<?php endforeach; $template->context = $template->popContext(); array_pop($_l->its); $iterator = end($_l->its); ?>';
 		$this->registerFilter($latte);
 
 		// common operations
