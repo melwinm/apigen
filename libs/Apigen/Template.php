@@ -28,6 +28,29 @@ use TokenReflection\IReflectionClass as ReflectionClass, TokenReflection\IReflec
  */
 class Template extends Nette\Templating\FileTemplate
 {
+	/**#@+
+	 * SourceLink plugins identifier.
+	 *
+	 * @var string
+	 */
+	const PLUGIN_SOURCELINK = 'sourceLink';
+
+	/**
+	 * Annotation generators identifier.
+	 */
+	const PLUGIN_ANNOTATION_GENERATOR = 'generator';
+
+	/**
+	 * Annotation processors identifier.
+	 */
+	const PLUGIN_ANNOTATION_PROCESSOR = 'processor';
+
+	/**
+	 * Page generators identifier.
+	 */
+	const PLUGIN_PAGE = 'page';
+	/**#@-*/
+
 	/**
 	 * Regular expression for recursive extracting of inline tags.
 	 *
@@ -57,18 +80,11 @@ class Template extends Nette\Templating\FileTemplate
 	private $classes;
 
 	/**
-	 * Highlighted source link plugin.
+	 * Plugin container.
 	 *
-	 * @var \Apigen\Plugin\SourceLink
+	 * @var \ArrayObject
 	 */
-	private $sourceLinkPlugin;
-
-	/**
-	 * Annotation tag processing plugins.
-	 *
-	 * @var array of \Apigen\Plugin\AnnotationProcessor
-	 */
-	private $annotationPlugins = array();
+	private $plugins;
 
 	/**
 	 * Creates a template.
@@ -79,7 +95,7 @@ class Template extends Nette\Templating\FileTemplate
 	{
 		$this->config = $generator->getConfig();
 		$this->classes = $generator->getClasses();
-		$this->preparePlugins($generator);
+		$this->registerPlugins($generator);
 
 		$that = $this;
 
@@ -332,7 +348,7 @@ class Template extends Nette\Templating\FileTemplate
 	 */
 	public function getSourceLink($element, $filesystemName = false)
 	{
-		return $this->sourceLinkPlugin->getSourceLink($element, $filesystemName);
+		return $this->plugins[self::PLUGIN_SOURCELINK]->getSourceLink($element, $filesystemName);
 	}
 
 	/**
@@ -550,13 +566,13 @@ class Template extends Nette\Templating\FileTemplate
 	{
 		list($original, $tag, $value) = $matches;
 
-		if (isset($this->annotationPlugins[$tag][Plugin\AnnotationProcessor::TYPE_INLINE_SIMPLE])) {
+		if (isset($this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][Plugin\AnnotationProcessor::TYPE_INLINE_SIMPLE])) {
 			// Simple inline tag, no children
-			$plugin = $this->annotationPlugins[$tag][Plugin\AnnotationProcessor::TYPE_INLINE_SIMPLE];
+			$plugin = $this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][Plugin\AnnotationProcessor::TYPE_INLINE_SIMPLE];
 			$type = Plugin\AnnotationProcessor::TYPE_INLINE_SIMPLE;
-		} elseif (isset($this->annotationPlugins[$tag][Plugin\AnnotationProcessor::TYPE_INLINE_WITH_CHILDREN])) {
+		} elseif (isset($this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][Plugin\AnnotationProcessor::TYPE_INLINE_WITH_CHILDREN])) {
 			// Inline with possible children
-			$plugin = $this->annotationPlugins[$tag][Plugin\AnnotationProcessor::TYPE_INLINE_WITH_CHILDREN];
+			$plugin = $this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][Plugin\AnnotationProcessor::TYPE_INLINE_WITH_CHILDREN];
 			$type = Plugin\AnnotationProcessor::TYPE_INLINE_WITH_CHILDREN;
 		} else  {
 			// No plugin found -> recursively process nested tags, but do not process the final value
@@ -642,8 +658,8 @@ class Template extends Nette\Templating\FileTemplate
 		// Process each annotation tag
 		foreach ($annotations as $name => $values) {
 			// Find the appropriate plugin
-			if (isset($this->annotationPlugins[$name][Plugin\AnnotationProcessor::TYPE_BLOCK])) {
-				$plugin = $this->annotationPlugins[$name][Plugin\AnnotationProcessor::TYPE_BLOCK];
+			if (isset($this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$name][Plugin\AnnotationProcessor::TYPE_BLOCK])) {
+				$plugin = $this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$name][Plugin\AnnotationProcessor::TYPE_BLOCK];
 				$tagName = $plugin->getTagName($name, Plugin\AnnotationProcessor::TYPE_BLOCK);
 
 				// Remove the particular annotation
@@ -675,14 +691,16 @@ class Template extends Nette\Templating\FileTemplate
 	}
 
 	/**
-	 * Prepares custom plugins.
+	 * Registers custom plugins.
 	 *
 	 * @param \Apigen\Generator $generator
 	 * @return array
 	 * @throws \Apigen\Exception When no sourceLink plugin is registered
 	 */
-	private function preparePlugins(Generator $generator)
+	private function registerPlugins(Generator $generator)
 	{
+		$this->plugins = new \ArrayObject();
+
 		// Load plugin files and find plugins
 		$pluginBroker = new Broker(new Broker\Backend\Memory(), false);
 		$pluginBroker->processFile(__DIR__ . '/Plugin.php');
@@ -704,12 +722,12 @@ class Template extends Nette\Templating\FileTemplate
 			$this->registerPlugin($plugin, $generator);
 		}
 
-		if (null === $this->sourceLinkPlugin) {
+		if (empty($this->plugins[self::PLUGIN_SOURCELINK])) {
 			throw new Exception('No sourceLink plugin was registered');
 		}
 
-		$pluginNames = array(get_class($this->sourceLinkPlugin) => true);
-		array_walk_recursive($this->annotationPlugins, function(Plugin $plugin) use(&$pluginNames) {
+		$tmp = $this->plugins->getArrayCopy();
+		array_walk_recursive($tmp, function(Plugin $plugin) use(&$pluginNames) {
 			$pluginNames[get_class($plugin)] = true;
 		});
 		$generator->output(sprintf("Using plugins\n %s\n", implode("\n ", array_keys($pluginNames))));
@@ -718,7 +736,7 @@ class Template extends Nette\Templating\FileTemplate
 	}
 
 	/**
-	 * Registers a plugin.
+	 * Registers a particular custom plugin.
 	 *
 	 * @param \TokenReflection\ReflectionClass $plugin Plugin class reflection
 	 * @param \TokenReflection\Generator $generator Generator instance
@@ -743,7 +761,7 @@ class Template extends Nette\Templating\FileTemplate
 
 		// Plugin is a sourceLink
 		if ($class->implementsInterface('Apigen\\Plugin\\SourceLink')) {
-			$this->sourceLinkPlugin = $plugin;
+			$this->plugins[self::PLUGIN_SOURCELINK] = $plugin;
 			$result = true;
 		}
 
@@ -759,11 +777,23 @@ class Template extends Nette\Templating\FileTemplate
 				foreach ($types as $type) {
 					if ($options & $type) {
 						// Register for a particular tag and type
-						$this->annotationPlugins[$tag][$type] = $plugin;
+						$this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][$type] = $plugin;
 						$result = true;
 					}
 				}
 			}
+		}
+
+		// Plugin is an annotationGenerator
+		if ($class->implementsInterface('Apigen\\Plugin\\AnnotationGenerator')) {
+			$this->plugins[self::PLUGIN_ANNOTATION_GENERATOR][] = $plugin;
+			$result = true;
+		}
+
+		// Plugin is a page
+		if ($class->implementsInterface('Apigen\\Plugin\\Page')) {
+			$this->plugins[self::PLUGIN_PAGE][] = $plugin;
+			$result = true;
 		}
 
 		return $result;
