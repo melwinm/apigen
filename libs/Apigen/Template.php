@@ -679,6 +679,7 @@ class Template extends Nette\Templating\FileTemplate
 	 *
 	 * @param \Apigen\Generator $generator
 	 * @return array
+	 * @throws \Apigen\Exception When no sourceLink plugin is registered
 	 */
 	private function preparePlugins(Generator $generator)
 	{
@@ -701,6 +702,10 @@ class Template extends Nette\Templating\FileTemplate
 		$plugins = $pluginBroker->getClasses(Backend::TOKENIZED_CLASSES);
 		foreach ($plugins as $plugin) {
 			$this->registerPlugin($plugin, $generator);
+		}
+
+		if (null === $this->sourceLinkPlugin) {
+			throw new Exception('No sourceLink plugin was registered');
 		}
 
 		$pluginNames = array(get_class($this->sourceLinkPlugin) => true);
