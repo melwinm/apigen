@@ -28,7 +28,7 @@ interface AnnotationGenerator extends Apigen\Plugin
 	 *
 	 * Please note that any generated annotation will be processed by appropriate plugins.
 	 *
-	 * @param \Apigen\Reflection|\TokenReflection\IReflection $element Reflections
+	 * @param \Apigen\Reflection|\TokenReflection\IReflection $element Reflection instance
 	 * @return array
 	 */
 	public function getAnnotations($element);
