@@ -222,13 +222,13 @@ class Generator extends Nette\Object
 			// File
 			$resourcePath = $templatePath . '/' . $resourceSource;
 			if (is_file($resourcePath)) {
-				copy($resourcePath, $this->forceDir("$destination/$resourceDestination"));
+				copy($resourcePath, $this->getOutputPath($resourceDestination));
 				continue;
 			}
 
 			// Dir
 			foreach ($iterator = Nette\Utils\Finder::findFiles('*')->from($resourcePath)->getIterator() as $item) {
-				copy($item->getPathName(), $this->forceDir("$destination/$resourceDestination/" . $iterator->getSubPathName()));
+				copy($item->getPathName(), $this->getOutputPath($resourceDestination . '/' . $iterator->getSubPathName()));
 			}
 		}
 
@@ -339,22 +339,22 @@ class Generator extends Nette\Object
 		$template->interfaces = $interfaces;
 		$template->exceptions = $exceptions;
 		foreach ($templates['common'] as $dest => $source) {
-			$template->setFile($templatePath . '/' . $source)->save($this->forceDir("$destination/$dest"));
+			$template->setFile($templatePath . '/' . $source)->save($this->getOutputPath($dest));
 
 			$this->incrementProgressBar();
 		}
 
 		// Optional files
 		if ($sitemapEnabled) {
-			$template->setFile($templatePath . '/' . $templates['optional']['sitemap']['template'])->save($this->forceDir($destination . '/' . $templates['optional']['sitemap']['filename']));
+			$template->setFile($templatePath . '/' . $templates['optional']['sitemap']['template'])->save($this->getOutputPath($templates['optional']['sitemap']['filename']));
 			$this->incrementProgressBar();
 		}
 		if ($opensearchEnabled) {
-			$template->setFile($templatePath . '/' . $templates['optional']['opensearch']['template'])->save($this->forceDir($destination . '/' . $templates['optional']['opensearch']['filename']));
+			$template->setFile($templatePath . '/' . $templates['optional']['opensearch']['template'])->save($this->getOutputPath($templates['optional']['opensearch']['filename']));
 			$this->incrementProgressBar();
 		}
 		if ($autocompleteEnabled) {
-			$template->setFile($templatePath . '/' . $templates['optional']['autocomplete']['template'])->save($this->forceDir($destination . '/' . $templates['optional']['autocomplete']['filename']));
+			$template->setFile($templatePath . '/' . $templates['optional']['autocomplete']['template'])->save($this->getOutputPath($templates['optional']['autocomplete']['filename']));
 			$this->incrementProgressBar();
 		}
 
@@ -531,7 +531,7 @@ class Generator extends Nette\Object
 				}
 			}
 
-			$template->setFile($templatePath . '/' . $templates['optional']['deprecated']['template'])->save($this->forceDir($destination . '/' . $templates['optional']['deprecated']['filename']));
+			$template->setFile($templatePath . '/' . $templates['optional']['deprecated']['template'])->save($this->getOutputPath($templates['optional']['deprecated']['filename']));
 
 			$this->incrementProgressBar();
 
@@ -562,7 +562,7 @@ class Generator extends Nette\Object
 				}
 			}
 
-			$template->setFile($templatePath . '/' . $templates['optional']['todo']['template'])->save($this->forceDir($destination . '/' . $templates['optional']['todo']['filename']));
+			$template->setFile($templatePath . '/' . $templates['optional']['todo']['template'])->save($this->getOutputPath($templates['optional']['todo']['filename']));
 
 			$this->incrementProgressBar();
 
@@ -628,7 +628,7 @@ class Generator extends Nette\Object
 		$template->interfaceTree = new Tree($interfaceTree, $this->classes);
 		$template->exceptionTree = new Tree($exceptionTree, $this->classes);
 
-		$template->setFile($templatePath . '/' . $templates['main']['tree']['template'])->save($this->forceDir($destination . '/' . $templates['main']['tree']['filename']));
+		$template->setFile($templatePath . '/' . $templates['main']['tree']['template'])->save($this->getOutputPath($templates['main']['tree']['filename']));
 
 		unset($template->classTree);
 		unset($template->interfaceTree);
@@ -638,7 +638,6 @@ class Generator extends Nette\Object
 		$this->incrementProgressBar();
 
 		// Generate package summary
-		$this->forceDir($destination . '/' . $templates['main']['package']['filename']);
 		$template->namespace = null;
 		foreach ($packages as $package => $definition) {
 			$pClasses = isset($definition['classes']) ? $definition['classes'] : array();
@@ -651,7 +650,7 @@ class Generator extends Nette\Object
 			$template->classes = array_filter($pClasses, $classFilter);
 			$template->interfaces = array_filter($pClasses, $interfaceFilter);
 			$template->exceptions = array_filter($pClasses, $exceptionFilter);
-			$template->setFile($templatePath . '/' . $templates['main']['package']['template'])->save($destination . '/' . $template->getPackageLink($package));
+			$template->setFile($templatePath . '/' . $templates['main']['package']['template'])->save($this->getOutputPath($template->getPackageLink($package)));
 
 			$this->incrementProgressBar();
 		}
@@ -660,7 +659,6 @@ class Generator extends Nette\Object
 		unset($pClasses);
 
 		// Generate namespace summary
-		$this->forceDir($destination . '/' . $templates['main']['namespace']['filename']);
 		$template->package = null;
 		foreach ($namespaces as $namespace => $definition) {
 			$nClasses = isset($definition['classes']) ? $definition['classes'] : array();
@@ -676,7 +674,7 @@ class Generator extends Nette\Object
 			$template->classes = array_filter($nClasses, $classFilter);
 			$template->interfaces = array_filter($nClasses, $interfaceFilter);
 			$template->exceptions = array_filter($nClasses, $exceptionFilter);
-			$template->setFile($templatePath . '/' . $templates['main']['namespace']['template'])->save($destination . '/' . $template->getNamespaceLink($namespace));
+			$template->setFile($templatePath . '/' . $templates['main']['namespace']['template'])->save($this->getOutputPath($template->getNamespaceLink($namespace)));
 
 			$this->incrementProgressBar();
 		}
@@ -690,8 +688,6 @@ class Generator extends Nette\Object
 
 		// Generate class & interface files
 		$fshl = new \fshlParser('HTML_UTF8', P_TAB_INDENT | P_LINE_COUNTER);
-		$this->forceDir($destination . '/' . $templates['main']['class']['filename']);
-		$this->forceDir($destination . '/' . $templates['main']['source']['filename']);
 		foreach (array('exceptions', 'interfaces', 'classes') as $type) {
 			foreach ($$type as $class) {
 				$template->package = $package = $class->getPackageName();
@@ -738,7 +734,7 @@ class Generator extends Nette\Object
 				}
 
 				$template->class = $class;
-				$template->setFile($templatePath . '/' . $templates['main']['class']['template'])->save($destination . '/' . $template->getClassLink($class));
+				$template->setFile($templatePath . '/' . $templates['main']['class']['template'])->save($this->getOutputPath($template->getClassLink($class)));
 
 				$this->incrementProgressBar();
 
@@ -749,7 +745,7 @@ class Generator extends Nette\Object
 						$source = str_replace(array("\r\n", "\r"), "\n", $source);
 
 						$template->source = $fshl->highlightString('PHP', $source);
-						$template->setFile($templatePath . '/' . $templates['main']['source']['template'])->save($destination . '/' . $fileName);
+						$template->setFile($templatePath . '/' . $templates['main']['source']['template'])->save($this->getOutputPath($fileName));
 					}
 
 					$this->incrementProgressBar();
@@ -814,18 +810,6 @@ class Generator extends Nette\Object
 	}
 
 	/**
-	 * Ensures a directory is created.
-	 *
-	 * @param string Directory path
-	 * @return string
-	 */
-	private function forceDir($path)
-	{
-		@mkdir(dirname($path), 0755, true);
-		return $path;
-	}
-
-	/**
 	 * Deletes a directory.
 	 *
 	 * @param string $path Directory path
@@ -849,5 +833,27 @@ class Generator extends Nette\Object
 		}
 
 		return true;
+	}
+
+	/**
+	 * Returns an absolute output path created from a relative one.
+	 *
+	 * Also ensures that any required subdirectories are properly created.
+	 *
+	 * @param string $relativePath Relative path (to the output directory)
+	 * @return string
+	 * @throws \Apigen\Exception If a directory could not be created
+	 */
+	public function getOutputPath($relativePath)
+	{
+		$outputPath = $this->config->destination . '/' . $relativePath;
+		if (strpos($relativePath, '/') || strpos($relativePath, '\\')) {
+			$outputDirName = dirname($outputPath);
+			if (!@mkdir($outputDirName, 0755, true) && !is_dir($outputDirName)) {
+				throw new Exception(sprintf('Could not create directory "%s".', $outputDirName));
+			}
+		}
+
+		return $outputPath;
 	}
 }
