@@ -103,6 +103,7 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 	{
 		return array(
 			'package' => self::TYPE_BLOCK | self::TYPE_INLINE_SIMPLE,
+			'subpackage' => self::TYPE_BLOCK | self::TYPE_INLINE_SIMPLE,
 			'see' => self::TYPE_BLOCK | self::TYPE_INLINE_SIMPLE,
 			'uses' => self::TYPE_BLOCK | self::TYPE_INLINE_SIMPLE,
 			'link' => self::TYPE_BLOCK | self::TYPE_INLINE_SIMPLE,
@@ -145,9 +146,22 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 	 */
 	public function getTagValue($tag, $type, $value)
 	{
+		if (!empty($this->template->class)) {
+			$context = $this->template->class;
+		} else {
+			$context = $this->template->getContext();
+		}
+
 		switch ($tag) {
 			case 'package':
-				return sprintf('<a href="%s">%s</a>', $this->template->packageLink($value), $this->template->escapeHtml($value));
+				return $this->template->packages
+					? '<a href="' . $this->template->getPackageUrl($value) . '">' . $this->template->escapeHtml($value) . '</a>'
+					: $this->template->escapeHtml($value);
+				break;
+			case 'subpackage':
+				return $this->template->packages
+					? '<a href="' . $this->template->getPackageUrl($context->getPackageName() . '\\' . $value) . '">' . $this->template->escapeHtml($value) . '</a>'
+					: $this->template->escapeHtml($value);
 				break;
 			case 'link':
 				if (false !== strpos($value, '://')) {
@@ -158,12 +172,6 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 				// Break missing on purpose
 			case 'see':
 			case 'uses':
-				if (!empty($this->template->class)) {
-					$context = $this->template->class;
-				} else {
-					$context = $this->template->getContext();
-				}
-
 				return $this->template->resolveClassLink($value, $context) ?: $this->template->escapeHtml($value);
 				break;
 			default:
