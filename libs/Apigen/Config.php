@@ -59,7 +59,8 @@ class Config
 		'templateDir' => '',
 		'allowedHtml' => array('b', 'i', 'a', 'ul', 'ol', 'li', 'p', 'br', 'var', 'samp', 'kbd', 'tt'),
 		'accessLevels' => array('public', 'protected'),
-		'internal' => true,
+		'php' => true,
+		'tree' => true,
 		'deprecated' => false,
 		'todo' => false,
 		'sourceCode' => true,
@@ -255,11 +256,10 @@ class Config
 		if (empty($this->config['template'])) {
 			throw new Exception('Template is not set', Exception::INVALID_CONFIG);
 		}
-		$templateConfig = $this->getTemplateConfig();
-		if (!is_dir(dirname($templateConfig))) {
+		if (!is_dir($this->getTemplateDir())) {
 			throw new Exception('Template doesn\'t exist', Exception::INVALID_CONFIG);
 		}
-		if (!is_file($templateConfig)) {
+		if (!is_file($this->getTemplateConfig())) {
 			throw new Exception('Template config doesn\'t exist', Exception::INVALID_CONFIG);
 		}
 
@@ -289,25 +289,31 @@ class Config
 	 */
 	private function checkTemplate()
 	{
-		foreach (array('package', 'namespace', 'class', 'source', 'tree') as $type) {
-			if (!isset($this->config['templates']['main'][$type]['filename'])) {
-				throw new Exception(sprintf('Filename for %s not defined', $type), Exception::INVALID_CONFIG);
-			}
-			if (!isset($this->config['templates']['main'][$type]['template'])) {
-				throw new Exception(sprintf('Template for %s not defined', $type), Exception::INVALID_CONFIG);
-			}
-		}
-
-		foreach ($this->config['templates']['optional'] as $type => $config) {
-			if (!isset($config['filename'])) {
-				throw new Exception(sprintf('Filename for %s not defined', $type), Exception::INVALID_CONFIG);
-			}
-			if (!isset($config['template'])) {
-				throw new Exception(sprintf('Template for %s not defined', $type), Exception::INVALID_CONFIG);
+		foreach (array('main', 'optional') as $section) {
+			foreach ($this->config['templates'][$section] as $type => $config) {
+				if (!isset($config['filename'])) {
+					throw new Exception(sprintf('Filename for %s is not defined', $type), Exception::INVALID_CONFIG);
+				}
+				if (!isset($config['template'])) {
+					throw new Exception(sprintf('Template for %s is not defined', $type), Exception::INVALID_CONFIG);
+				}
+				if (!is_file($this->getTemplateDir() . DIRECTORY_SEPARATOR . $config['template'])) {
+					throw new Exception(sprintf('Template for %s doesn\'t exist', $type), Exception::INVALID_CONFIG);
+				}
 			}
 		}
 
 		return $this;
+	}
+
+	/**
+	 * Returns template dir path.
+	 *
+	 * @return string
+	 */
+	private function getTemplateDir()
+	{
+		return $this->config['templateDir'] . DIRECTORY_SEPARATOR . $this->config['template'];
 	}
 
 	/**
@@ -317,7 +323,7 @@ class Config
 	 */
 	private function getTemplateConfig()
 	{
-		return $this->config['templateDir'] . DIRECTORY_SEPARATOR . $this->config['template'] . DIRECTORY_SEPARATOR . 'config.neon';
+		return $this->getTemplateDir() . DIRECTORY_SEPARATOR . 'config.neon';
 	}
 
 	/**
@@ -340,27 +346,6 @@ class Config
 	public function __get($name)
 	{
 		return isset($this->config[$name]) ? $this->config[$name] : null;
-	}
-
-	/**
-	 * Sets a configuration option.
-	 *
-	 * @param string $name Option name
-	 * @param mixed $value Option value
-	 */
-	public function __set($name, $value)
-	{
-		$this->config[$name] = $value;
-	}
-
-	/**
-	 * Deletes a configuration option.
-	 *
-	 * @param string $name Option name
-	 */
-	public function __unset($name)
-	{
-		unset($this->config[$name]);
 	}
 
 	/**
@@ -391,7 +376,8 @@ Options:
 	--template-dir     <dir>       Directory with templates, default "./templates"
 	--allowed-html     <list>      List of allowed HTML tags in documentation, default "b,i,a,ul,ol,li,p,br,var,samp,kbd,tt"
 	--access-levels    <list>      Generate documentation for methods and properties with given access level, default "public,protected"
-	--internal         <yes|no>    Generate documentation for internal classes, default "yes"
+	--php              <yes|no>    Generate documentation for PHP internal classes, default "yes"
+	--tree             <yes|no>    Generate tree view of classes, interfaces and exceptions, default "yes"
 	--deprecated       <yes|no>    Generate documentation for deprecated classes, methods, properties and constants, default "no"
 	--todo             <yes|no>    Generate documentation of tasks, default "no"
 	--source-code      <yes|no>    Generate highlighted source code files, default "yes"

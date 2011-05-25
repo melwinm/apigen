@@ -12,7 +12,7 @@
  */
 
 namespace Apigen;
-use Apigen\Plugin, Apigen\Reflection as ApiReflection;
+use Apigen\Plugin, Apigen\Reflection as ReflectionClass;
 
 /**
  * Default Apigen plugin.
@@ -63,15 +63,27 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 	 */
 	public function getSourceLink($element, $filesystemName)
 	{
-		$class = $element instanceof ApiReflection ? $element : $element->getDeclaringClass();
+		$fileName = '';
 
-		$filename = sprintf(
+		if ($element instanceof ReflectionClass || $element instanceof ReflectionFunction || ($element instanceof ReflectionConstant && null === $element->getDeclaringClassName())) {
+			$elementName = $element->getName();
+
+			if ($element instanceof ReflectionFunction) {
+				$fileName = 'function-';
+			} elseif ($element instanceof ReflectionConstant) {
+				$fileName = 'constant-';
+			}
+		} else {
+			$elementName = $element->getDeclaringClassName();
+		}
+
+		$fileName = sprintf(
 			$this->config->templates['main']['source']['filename'],
-			preg_replace('#[^a-z0-9_]#i', '.', str_replace('\\', '/', $class->getName()))
+			$fileName . preg_replace('#[^a-z0-9_]#i', '.', $elementName)
 		);
 
 		if ($filesystemName) {
-			return $filename;
+			return $fileName;
 		}
 
 		$line = $element->getStartLine();
@@ -79,7 +91,7 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 			$line -= substr_count($doc, "\n") + 1;
 		}
 
-		return $filename . '#' . $line;
+		return $fileName . '#' . $line;
 	}
 
 	/**
