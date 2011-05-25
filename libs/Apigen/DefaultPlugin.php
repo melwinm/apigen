@@ -154,15 +154,23 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 
 		switch ($tag) {
 			case 'package':
-				return $this->template->packages
-					? '<a href="' . $this->template->getPackageUrl($value) . '">' . $this->template->escapeHtml($value) . '</a>'
-					: $this->template->escapeHtml($value);
-				break;
-			case 'subpackage':
-				return $this->template->packages
-					? '<a href="' . $this->template->getPackageUrl($context->getPackageName() . '\\' . $value) . '">' . $this->template->escapeHtml($value) . '</a>'
-					: $this->template->escapeHtml($value);
-				break;
+					@list($packageName, $description) = preg_split('~\s+~', $value, 2);
+					return $this->template->packages
+						? '<a href="' . $this->template->getPackageUrl($packageName) . '">' . $this->template->escapeHtml($packageName) . '</a> ' . $this->template->escapeHtml($description)
+						: $this->template->escapeHtml($value);
+					break;
+				case 'subpackage':
+					if ($context->hasAnnotation('package')) {
+						list($packageName) = preg_split('~\s+~', $context->annotations['package'][0], 2);
+					} else {
+						$packageName = '';
+					}
+					@list($subpackageName, $description) = preg_split('~\s+~', $value, 2);
+
+					return $this->template->packages && $packageName
+						? '<a href="' . $this->template->getPackageUrl($packageName . '\\' . $subpackageName) . '">' . $this->template->escapeHtml($subpackageName) . '</a> ' . $this->template->escapeHtml($description)
+						: $this->template->escapeHtml($value);
+					break;
 			case 'link':
 				if (false !== strpos($value, '://')) {
 					return sprintf('<a href="%1$s">%1$s</a>', $this->template->escapeHtml($value));
