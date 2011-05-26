@@ -427,7 +427,7 @@ class Generator extends Nette\Object
 		$template->version = self::VERSION;
 		$template->config = $this->config;
 
-		// Generate summary files
+		// Prepare common template variables
 		$template->namespace = null;
 		$template->namespaces = array_keys($namespaces);
 		$template->package = null;
@@ -440,6 +440,13 @@ class Generator extends Nette\Object
 		$template->constants = $constants;
 		$template->function = null;
 		$template->functions = $functions;
+
+		// Insert custom menu items
+		$template->topMenuCustomItems = $template->getCustomMenuItems(Plugin\Page::MENU_TOP);
+		$template->mainMenuCustomItems = $template->getCustomMenuItems(Plugin\Page::MENU_MAIN);
+		$template->footerCustomItems = $template->getCustomMenuItems(Plugin\Page::MENU_FOOTER);
+
+		// Generate summary files
 		foreach ($templates['common'] as $dest => $source) {
 			$template->setFile($templatePath . '/' . $source)->save($this->getOutputPath($dest));
 

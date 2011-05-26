@@ -32,92 +32,97 @@
 <div id="main">
 <div id="leftWrapper">
 	<div id="left">
-		<a href="index.html">Overview</a>
+		<a n:tag-if="'overview' !== $active" href="index.html" title="Overview"><span>Overview</span></a><br>
+		{foreach $mainMenuCustomItems as $link => $title}
+		<a n:tag-if="$link !== $active" href="{$link}" title="{$title}"><span>{$title}</span></a>
+		{sep}<br>{/sep}{/foreach}
 
-		{if $packages}
-		<h3>Packages</h3>
-		<ul>
-			{foreach $packages as $item}
-			<li n:class="$package === $item || 0 === strpos($package, $item . '\\') ? active"><a href="{$item|packageUrl}">{$template->subpackageName($item) ?: $item}</a>
-				{if substr_count($iterator->nextValue, '\\') > substr_count($item, '\\')}
-					<span></span>
-					<ul>
-				{else}
-					</li>
-					{if substr_count($iterator->nextValue, '\\') < substr_count($item, '\\')}
-						{!=str_repeat('</ul></li>', substr_count($item, '\\') - substr_count($iterator->nextValue, '\\'))}
+		<div id="entities">
+			{if $packages}
+			<h3>Packages</h3>
+			<ul>
+				{foreach $packages as $item}
+				<li n:class="$package === $item || 0 === strpos($package, $item . '\\') ? active"><a href="{$item|packageUrl}">{$template->subpackageName($item) ?: $item}</a>
+					{if substr_count($iterator->nextValue, '\\') > substr_count($item, '\\')}
+						<span></span>
+						<ul>
+					{else}
+						</li>
+						{if substr_count($iterator->nextValue, '\\') < substr_count($item, '\\')}
+							{!=str_repeat('</ul></li>', substr_count($item, '\\') - substr_count($iterator->nextValue, '\\'))}
+						{/if}
 					{/if}
-				{/if}
-			{/foreach}
-		</ul>
-		{/if}
+				{/foreach}
+			</ul>
+			{/if}
 
-		{if $namespaces}
-		<h3>Namespaces</h3>
-		<ul>
-			{foreach $namespaces as $item}
-			<li n:class="$namespace === $item || 0 === strpos($namespace, $item . '\\') ? active"><a href="{$item|namespaceUrl}">{$item|subnamespaceName}</a>
-				{if substr_count($iterator->nextValue, '\\') > substr_count($item, '\\')}
-					<span></span>
-					<ul>
-				{else}
-					</li>
-					{if substr_count($iterator->nextValue, '\\') < substr_count($item, '\\')}
-						{!=str_repeat('</ul></li>', substr_count($item, '\\') - substr_count($iterator->nextValue, '\\'))}
+			{if $namespaces}
+			<h3>Namespaces</h3>
+			<ul>
+				{foreach $namespaces as $item}
+				<li n:class="$namespace === $item || 0 === strpos($namespace, $item . '\\') ? active"><a href="{$item|namespaceUrl}">{$item|subnamespaceName}</a>
+					{if substr_count($iterator->nextValue, '\\') > substr_count($item, '\\')}
+						<span></span>
+						<ul>
+					{else}
+						</li>
+						{if substr_count($iterator->nextValue, '\\') < substr_count($item, '\\')}
+							{!=str_repeat('</ul></li>', substr_count($item, '\\') - substr_count($iterator->nextValue, '\\'))}
+						{/if}
 					{/if}
-				{/if}
+				{/foreach}
+			</ul>
+			{/if}
+
+			{if $packages || $namespaces}
+			<hr>
+			{/if}
+
+			{if $classes}
+			<h3>Classes</h3>
+			<ul>
+			{foreach $classes as $item}
+				<li n:class="$class === $item ? active"><a href="{$item|classUrl}">{if $namespace}{$item->shortName}{else}{$item->name}{/if}</a></li>
 			{/foreach}
-		</ul>
-		{/if}
+			</ul>
+			{/if}
 
-		{if $packages || $namespaces}
-		<hr>
-		{/if}
+			{if $interfaces}
+			<h3>Interfaces</h3>
+			<ul>
+			{foreach $interfaces as $item}
+				<li n:class="$class === $item ? active"><a href="{$item|classUrl}">{if $namespace}{$item->shortName}{else}{$item->name}{/if}</a></li>
+			{/foreach}
+			</ul>
+			{/if}
 
-		{if $classes}
-		<h3>Classes</h3>
-		<ul>
-		{foreach $classes as $item}
-			<li n:class="$class === $item ? active"><a href="{$item|classUrl}">{if $namespace}{$item->shortName}{else}{$item->name}{/if}</a></li>
-		{/foreach}
-		</ul>
-		{/if}
+			{if $exceptions}
+			<h3>Exceptions</h3>
+			<ul>
+			{foreach $exceptions as $item}
+				<li n:class="$class === $item ? active"><a href="{$item|classUrl}">{if $namespace}{$item->shortName}{else}{$item->name}{/if}</a></li>
+			{/foreach}
+			</ul>
+			{/if}
 
-		{if $interfaces}
-		<h3>Interfaces</h3>
-		<ul>
-		{foreach $interfaces as $item}
-			<li n:class="$class === $item ? active"><a href="{$item|classUrl}">{if $namespace}{$item->shortName}{else}{$item->name}{/if}</a></li>
-		{/foreach}
-		</ul>
-		{/if}
+			{if $constants}
+			<h3>Constants</h3>
+			<ul>
+			{foreach $constants as $item}
+				<li n:class="$constant === $item ? active"><a href="{$item|constantUrl}">{if $namespace}{$item->shortName}{else}{$item->name}{/if}</a></li>
+			{/foreach}
+			</ul>
+			{/if}
 
-		{if $exceptions}
-		<h3>Exceptions</h3>
-		<ul>
-		{foreach $exceptions as $item}
-			<li n:class="$class === $item ? active"><a href="{$item|classUrl}">{if $namespace}{$item->shortName}{else}{$item->name}{/if}</a></li>
-		{/foreach}
-		</ul>
-		{/if}
-
-		{if $constants}
-		<h3>Constants</h3>
-		<ul>
-		{foreach $constants as $item}
-			<li n:class="$constant === $item ? active"><a href="{$item|constantUrl}">{if $namespace}{$item->shortName}{else}{$item->name}{/if}</a></li>
-		{/foreach}
-		</ul>
-		{/if}
-
-		{if $functions}
-		<h3>Functions</h3>
-		<ul>
-		{foreach $functions as $item}
-			<li n:class="$function === $item ? active"><a href="{$item|functionUrl}">{if $namespace}{$item->shortName}{else}{$item->name}{/if}</a></li>
-		{/foreach}
-		</ul>
-		{/if}
+			{if $functions}
+			<h3>Functions</h3>
+			<ul>
+			{foreach $functions as $item}
+				<li n:class="$function === $item ? active"><a href="{$item|functionUrl}">{if $namespace}{$item->shortName}{else}{$item->name}{/if}</a></li>
+			{/foreach}
+			</ul>
+			{/if}
+		</div>
 	</div>
 </div>
 <div id="rightWrapper">
@@ -157,6 +162,9 @@
 				<li n:class="'todo' === $active ? active" n:if="$config->todo">
 					<a n:tag-if="'todo' !== $active" href="todo.html" title="Todo list"><span>Todo</span></a>
 				</li>
+				<li n:foreach="$topMenuCustomItems as $link => $title" n:class="$link === $active ? active">
+					<a n:tag-if="$link !== $active" href="{$link}" title="{$title}"><span>{$title}</span></a>
+				</li>
 			</ul>
 		</div>
 
@@ -164,7 +172,8 @@
 
 		<div id="footer">
 			{$config->title} API documentation generated by <a href="http://github.com/Andrewsville/apigen">{$generator}</a>.<br>
-			Generated using the <a href="https://github.com/Andrewsville/PHP-Token-Reflection" title="All your tokens are belong to us">TokenReflection</a> library.
+			Generated using the <a href="https://github.com/Andrewsville/PHP-Token-Reflection" title="All your tokens are belong to us">TokenReflection</a> library.<br>
+			{foreach $footerCustomItems as $link => $title}<a href="{$link}" title="{$title}">{$title}</a>{sep} | {/sep}{/foreach}
 		</div>
 	</div>
 </div>
