@@ -11,7 +11,6 @@
  */
 
 namespace Apigen\Plugin;
-use Apigen;
 
 /**
  * Source link plugin interface.
@@ -22,7 +21,7 @@ use Apigen;
  * @author Ondřej Nešpor
  * @author Jaroslav Hanslík
  */
-interface SourceLink extends Apigen\Plugin
+interface SourceLink extends Base
 {
 	/**
 	 * Returns an URL of a highlighted class source code.

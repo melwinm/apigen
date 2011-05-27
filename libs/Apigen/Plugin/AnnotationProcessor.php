@@ -11,7 +11,6 @@
  */
 
 namespace Apigen\Plugin;
-use Apigen;
 
 /**
  * Annotation processor.
@@ -21,7 +20,7 @@ use Apigen;
  * @author Ondřej Nešpor
  * @author Jaroslav Hanslík
  */
-interface AnnotationProcessor extends Apigen\Plugin
+interface AnnotationProcessor extends Base
 {
 	/**#@+
 	 * Inline tag with no children, {@link} for example.

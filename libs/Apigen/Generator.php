@@ -78,6 +78,13 @@ class Generator extends Nette\Object
 	private $functions = null;
 
 	/**
+	 * Plugins container.
+	 *
+	 * @var \Apigen\Plugins
+	 */
+	private $plugins;
+
+	/**
 	 * Sets configuration.
 	 *
 	 * @param array $config
@@ -422,6 +429,7 @@ class Generator extends Nette\Object
 
 		// Prepare template
 		$template = new Template($this);
+		$this->plugins = $template->getPlugins();
 		$template->setCacheStorage(new Nette\Templating\PhpFileStorage($tmp));
 		$template->generator = self::NAME;
 		$template->version = self::VERSION;
@@ -442,9 +450,9 @@ class Generator extends Nette\Object
 		$template->functions = $functions;
 
 		// Insert custom menu items
-		$template->topMenuCustomItems = $template->getCustomMenuItems(Plugin\Page::MENU_TOP);
-		$template->mainMenuCustomItems = $template->getCustomMenuItems(Plugin\Page::MENU_MAIN);
-		$template->footerCustomItems = $template->getCustomMenuItems(Plugin\Page::MENU_FOOTER);
+		$template->topMenuCustomItems = $this->plugins->getCustomMenuItems(Plugin\Page::MENU_TOP);
+		$template->mainMenuCustomItems = $this->plugins->getCustomMenuItems(Plugin\Page::MENU_MAIN);
+		$template->footerCustomItems = $this->plugins->getCustomMenuItems(Plugin\Page::MENU_FOOTER);
 
 		// Generate summary files
 		foreach ($templates['common'] as $dest => $source) {
@@ -454,7 +462,7 @@ class Generator extends Nette\Object
 		}
 
 		// Custom pages
-		$template->renderCustomPages();
+		$this->plugins->renderCustomPages();
 
 		// Optional files
 		if ($sitemapEnabled) {

@@ -20,7 +20,9 @@ use Apigen\Plugin, Apigen\Reflection as ReflectionClass;
  * Creates links to the highlighted source code and processes several docblock tags.
  *
  * This can serve as an example implementation of TR ApiGen plugins functionality.
- * Implementing two plugin interfaces makes this a "double plugin" actually :)
+ *
+ * As you can see, a class can implement multiple plugin interfaces. This lets you
+ * develop more complex plugins that affect the output in multiple ways.
  *
  * @author Ondřej Nešpor
  * @author Jaroslav Hanslík

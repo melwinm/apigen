@@ -11,7 +11,6 @@
  */
 
 namespace Apigen\Plugin;
-use Apigen;
 
 /**
  * Annotation generator.
@@ -21,7 +20,7 @@ use Apigen;
  * @author Ondřej Nešpor
  * @author Jaroslav Hanslík
  */
-interface AnnotationGenerator extends Apigen\Plugin
+interface AnnotationGenerator extends Base
 {
 	/**
 	 * Generates custom annotations.

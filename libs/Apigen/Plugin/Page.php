@@ -11,7 +11,6 @@
  */
 
 namespace Apigen\Plugin;
-use Apigen;
 
 /**
  * Page generator plugin interface.
@@ -22,7 +21,7 @@ use Apigen;
  * @author Ondřej Nešpor
  * @author Jaroslav Hanslík
  */
-interface Page extends Apigen\Plugin
+interface Page extends Base
 {
 	/**#@+
 	 * Top menu.

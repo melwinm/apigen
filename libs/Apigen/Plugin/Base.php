@@ -11,7 +11,8 @@
  * GPL license. For more information please see http://nette.org
  */
 
-namespace Apigen;
+namespace Apigen\Plugin;
+use Apigen;
 
 /**
  * Base plugin interface.
@@ -19,13 +20,12 @@ namespace Apigen;
  * All plugins have to implement the same constructor that accepts a template
  * and configuration instance.
  *
- * Do not implement this interface directly, use one of its subclasses from
- * \Apigen\Plugin namespace instead.
+ * Do not implement this interface directly, use one of its subclasses instead.
  *
  * @author Ondřej Nešpor
  * @author Jaroslav Hanslík
  */
-interface Plugin
+interface Base
 {
 	/**
 	 * Plugin constructor.
@@ -34,5 +34,5 @@ interface Plugin
 	 * @param \Apigen\Template $template Template instance
 	 * @param \Apigen\Config $config Configuration
 	 */
-	public function __construct(Generator $generator, Template $template, Config $config);
+	public function __construct(Apigen\Generator $generator, Apigen\Template $template, Apigen\Config $config);
 }
