@@ -941,6 +941,45 @@ class Template extends Nette\Templating\FileTemplate
 	}
 
 	/**
+	 * Returns custom menus defined by page plugins.
+	 *
+	 * @return array
+	 */
+	public function getCustomMenus()
+	{
+		static $positions = array(
+			Plugin\Page::PLACEMENT_NAMESPACES_PACKAGES,
+			Plugin\Page::PLACEMENT_CLASSES,
+			Plugin\Page::PLACEMENT_INTERFACES,
+			Plugin\Page::PLACEMENT_EXCEPTIONS
+		);
+		static $modifiers = array(
+			Plugin\Page::PLACEMENT_ABOVE,
+			Plugin\Page::PLACEMENT_BELOW
+		);
+
+		$menus = array();
+		foreach ($positions as $position) {
+			foreach ($modifiers as $modifier) {
+				$menus[$position & $modifier] = array();
+			}
+		}
+
+		if (isset($this->plugins[self::PLUGIN_PAGE])) {
+			foreach ($this->plugins[self::PLUGIN_PAGE] as $plugin) {
+				foreach ($menus as $position => $menu) {
+					$pluginMenu = $plugin->getMenu($position);
+					if (!empty($pluginMenu)) {
+						$menus[$position] = array_merge($menus[$position], $pluginMenu);
+					}
+				}
+			}
+		}
+
+		return $menus;
+	}
+
+	/**
 	 * Registers custom plugins.
 	 *
 	 * @param \Apigen\Generator $generator

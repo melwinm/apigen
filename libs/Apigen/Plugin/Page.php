@@ -56,27 +56,22 @@ interface Page extends Apigen\Plugin
 	/**
 	 * Place menu next to the classes list.
 	 */
-	const PLACEMENT_CLASSES = 0x010;
+	const PLACEMENT_CLASSES = 0x10;
 
 	/**
 	 * Place menu next to the interfaces list.
 	 */
-	const PLACEMENT_INTERFACES = 0x020;
+	const PLACEMENT_INTERFACES = 0x20;
 
 	/**
 	 * Place menu next to the exceptions list.
 	 */
-	const PLACEMENT_EXCEPTIONS = 0x040;
+	const PLACEMENT_EXCEPTIONS = 0x40;
 
 	/**
 	 * Place menu next to the namespaces list.
 	 */
-	const PLACEMENT_NAMESPACES = 0x080;
-
-	/**
-	 * Place menu next to the packages list.
-	 */
-	const PLACEMENT_PACKAGES = 0x100;
+	const PLACEMENT_NAMESPACES_PACKAGES = 0x80;
 	/**#@-*/
 
 	/**
