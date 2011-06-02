@@ -84,6 +84,16 @@ interface Page extends Base
 	/**
 	 * Returns a whole menu definition for a given position.
 	 *
+	 * The menu has to be returned in this format:
+	 * array(
+	 *    'title' => <menu title>
+	 *    'items' => array(
+	 *       'url' => 'title',
+	 *       ...
+	 *    ),
+	 *    'highlighted' => array(<array of urls>)
+	 * )
+	 *
 	 * @return array
 	 */
 	public function getMenu($position);
