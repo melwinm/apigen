@@ -118,7 +118,11 @@ class Template extends Nette\Templating\FileTemplate
 		$macroSet->addMacro(
 			'foreach',
 			function(Nette\Latte\MacroNode $node, $writer) {
-				return Nette\Latte\Macros\CoreMacros::macroForeach($node, $writer)
+				/**
+				 * @see \Nette\Latte\Macros\CoreMacros::macroForeach()
+				 */
+				return '$iterations = 0; foreach ($iterator = $_l->its[] = new Nette\Iterators\CachingIterator('
+					. preg_replace('#(.*)\s+as\s+#i', '$1) as ', $writer->formatArgs(), 1) . '):'
 					. 'if (!$iterator->isFirst()) $template->popContext(); $template->context = $template->pushContext($iterator->current())';
 			},
 			'$iterations++; endforeach; $template->context = $template->popContext(); array_pop($_l->its); $iterator = end($_l->its);'

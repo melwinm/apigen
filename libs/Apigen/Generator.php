@@ -458,11 +458,6 @@ class Generator extends Nette\Object
 		$template->function = null;
 		$template->functions = $functions;
 
-		// Insert custom menu items
-		$template->topMenuCustomItems = $this->plugins->getCustomMenuItems(Plugin\Page::MENU_TOP);
-		$template->mainMenuCustomItems = $this->plugins->getCustomMenuItems(Plugin\Page::MENU_MAIN);
-		$template->footerCustomItems = $this->plugins->getCustomMenuItems(Plugin\Page::MENU_FOOTER);
-
 		foreach ($templates['common'] as $dest => $source) {
 			$template->setFile($templatePath . '/' . $source)->save($this->forceDir("$destination/$dest"));
 

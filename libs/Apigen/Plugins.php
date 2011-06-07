@@ -30,19 +30,9 @@ class Plugins
 	const PLUGIN_SOURCELINK = 'sourceLink';
 
 	/**
-	 * Annotation generators identifier.
-	 */
-	const PLUGIN_ANNOTATION_GENERATOR = 'generator';
-
-	/**
 	 * Annotation processors identifier.
 	 */
 	const PLUGIN_ANNOTATION_PROCESSOR = 'processor';
-
-	/**
-	 * Page generators identifier.
-	 */
-	const PLUGIN_PAGE = 'page';
 	/**#@-*/
 
 	/**
@@ -239,7 +229,7 @@ class Plugins
 				}
 			} else {
 				// No plugin found, just escape the value
-				$annotations[$name] = array_map(array($this, 'escapeHtml'), $values);
+				$annotations[$name] = array_map(array($this->template, 'escapeHtml'), $values);
 			}
 		}
 
@@ -256,109 +246,8 @@ class Plugins
 	 */
 	public function getAnnotations($element)
 	{
-		$annotations = $element->getAnnotations();
-		if (!empty($this->plugins[self::PLUGIN_ANNOTATION_GENERATOR])) {
-			foreach ($this->plugins[self::PLUGIN_ANNOTATION_GENERATOR] as $plugin) {
-				$customAnnotations = $plugin->getAnnotations($element);
+		return $element->getAnnotations();
 
-				// Descriptions cannot be merged; they are appended instead
-				if (isset($customAnnotations[ReflectionAnnotation::SHORT_DESCRIPTION])) {
-					if (isset($annotations[ReflectionAnnotation::SHORT_DESCRIPTION])) {
-						$annotations[ReflectionAnnotation::SHORT_DESCRIPTION] .= "\n\n" . $customAnnotations[ReflectionAnnotation::SHORT_DESCRIPTION];
-					} else {
-						$annotations[ReflectionAnnotation::SHORT_DESCRIPTION] = $customAnnotations[ReflectionAnnotation::SHORT_DESCRIPTION];
-					}
-					unset($customAnnotations[ReflectionAnnotation::SHORT_DESCRIPTION]);
-				}
-				if (isset($customAnnotations[ReflectionAnnotation::LONG_DESCRIPTION])) {
-					if (isset($annotations[ReflectionAnnotation::LONG_DESCRIPTION])) {
-						$annotations[ReflectionAnnotation::LONG_DESCRIPTION] .= "\n\n" . $customAnnotations[ReflectionAnnotation::LONG_DESCRIPTION];
-					} else {
-						$annotations[ReflectionAnnotation::LONG_DESCRIPTION] = $customAnnotations[ReflectionAnnotation::LONG_DESCRIPTION];
-					}
-					unset($customAnnotations[ReflectionAnnotation::LONG_DESCRIPTION]);
-				}
-
-				if (!empty($customAnnotations)) {
-					$annotations = array_merge_recursive($annotations, $customAnnotations);
-				}
-			}
-		}
-
-		return $annotations;
-	}
-
-	/**
-	 * Calls page plugins to render custom pages.
-	 */
-	public function renderCustomPages()
-	{
-		if (!empty($this->plugins[self::PLUGIN_PAGE])) {
-			foreach ($this->plugins[self::PLUGIN_PAGE] as $plugin) {
-				$plugin->renderPages();
-			}
-		}
-	}
-
-	/**
-	 * Returns custom menu items defined by page plugins.
-	 *
-	 * @param integer $position Menu position
-	 * @return array
-	 * @see Apigen\Plugin\Page::MENU_TOP
-	 * @see Apigen\Plugin\Page::MENU_MAIN
-	 * @see Apigen\Plugin\Page::MENU_FOOTER
-	 */
-	public function getCustomMenuItems($position = 0)
-	{
-		$items = array();
-		if (!empty($this->plugins[self::PLUGIN_PAGE])) {
-			foreach ($this->plugins[self::PLUGIN_PAGE] as $plugin) {
-				if ($pluginItems = $plugin->getMenuItems($position)) {
-					$items = array_merge($items, $pluginItems);
-				}
-			}
-		}
-		return $items;
-	}
-
-	/**
-	 * Returns custom menus defined by page plugins.
-	 *
-	 * @return array
-	 */
-	public function getCustomMenus()
-	{
-		static $positions = array(
-			Plugin\Page::PLACEMENT_NAMESPACES_PACKAGES,
-			Plugin\Page::PLACEMENT_CLASSES,
-			Plugin\Page::PLACEMENT_INTERFACES,
-			Plugin\Page::PLACEMENT_EXCEPTIONS
-		);
-		static $modifiers = array(
-			Plugin\Page::PLACEMENT_ABOVE,
-			Plugin\Page::PLACEMENT_BELOW
-		);
-
-		$menus = array();
-		foreach ($positions as $position) {
-			foreach ($modifiers as $modifier) {
-				$menus[$position & $modifier] = array();
-			}
-		}
-
-		if (isset($this->plugins[self::PLUGIN_PAGE])) {
-			foreach ($this->plugins[self::PLUGIN_PAGE] as $plugin) {
-				foreach ($menus as $position => $menu) {
-					$pluginMenu = $plugin->getMenu($position);
-					if (!empty($pluginMenu)) {
-						$menus[$position] = array_merge($menus[$position], $pluginMenu);
-					}
-				}
-			}
-		}
-
-		return $menus;
 	}
 
 	/**
@@ -451,18 +340,6 @@ class Plugins
 					}
 				}
 			}
-		}
-
-		// Plugin is an annotationGenerator
-		if ($class->implementsInterface('Apigen\\Plugin\\AnnotationGenerator')) {
-			$this->plugins[self::PLUGIN_ANNOTATION_GENERATOR][] = $plugin;
-			$result = true;
-		}
-
-		// Plugin is a page
-		if ($class->implementsInterface('Apigen\\Plugin\\Page')) {
-			$this->plugins[self::PLUGIN_PAGE][] = $plugin;
-			$result = true;
 		}
 
 		return $result;

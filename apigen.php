@@ -31,8 +31,6 @@ require __DIR__ . '/libs/Apigen/Plugins.php';
 require __DIR__ . '/libs/Apigen/Plugin/Base.php';
 require __DIR__ . '/libs/Apigen/Plugin/SourceLink.php';
 require __DIR__ . '/libs/Apigen/Plugin/AnnotationProcessor.php';
-require __DIR__ . '/libs/Apigen/Plugin/Page.php';
-require __DIR__ . '/libs/Apigen/Plugin/AnnotationGenerator.php';
 
 try {
 
