@@ -12,7 +12,7 @@
  */
 
 namespace Apigen;
-use TokenReflection, TokenReflection\Broker\Backend\Memory, RuntimeException, ReflectionMethod;
+use TokenReflection, TokenReflection\IReflectionConstant, TokenReflection\IReflectionFunction, TokenReflection\Broker;
 
 /**
  * Customized TokenReflection broker backend.
@@ -23,7 +23,7 @@ use TokenReflection, TokenReflection\Broker\Backend\Memory, RuntimeException, Re
  * @author Ondřej Nešpor
  * @author Jaroslav Hanslík
  */
-class Backend extends Memory
+class Backend extends Broker\Backend\Memory
 {
 	/**
 	 * Generator instance.
@@ -33,13 +33,90 @@ class Backend extends Memory
 	private $generator;
 
 	/**
+	 * Cache of processed token streams.
+	 *
+	 * @var array
+	 */
+	private $fileCache = array();
+
+	/**
+	 * Determines if token streams should be cached in filesystem.
+	 *
+	 * @var boolean
+	 */
+	private $cacheTokenStreams = false;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param \Apigen\Generator $config Generator instance
 	 */
-	public function __construct(Generator $generator)
+	public function __construct(Generator $generator, $cacheTokenStreams = false)
 	{
 		$this->generator = $generator;
+		$this->cacheTokenStreams = $cacheTokenStreams;
+	}
+
+	/**
+	 * Destructor.
+	 *
+	 * Deletes all cached token streams.
+	 */
+	public function __destruct()
+	{
+		foreach ($this->fileCache as $file) {
+			unlink($file);
+		}
+	}
+
+	/**
+	 * Adds a file to the backend storage.
+	 *
+	 * @param \TokenReflection\ReflectionFile $file File reflection object
+	 * @return \TokenReflection\Broker\Backend\Memory
+	 */
+	public function addFile(TokenReflection\ReflectionFile $file)
+	{
+		parent::addFile($file);
+		if ($this->cacheTokenStreams) {
+			$this->fileCache[$file->getName()] = $cacheFile = tempnam(sys_get_temp_dir(), 'trc');
+			file_put_contents($cacheFile, serialize($file->getTokenStream()));
+		}
+		return $this;
+	}
+
+	/**
+	 * Returns an array of tokens for a particular file.
+	 *
+	 * @param string $fileName File name
+	 * @return \TokenReflection\Stream
+	 * @throws \Apigen\Exception If the token stream could not be returned
+	 */
+	public function getFileTokens($fileName)
+	{
+		try {
+			if (!$this->isFileProcessed($fileName)) {
+				throw new Exception('File was not processed.');
+			}
+
+			$realName = Broker::getRealPath($fileName);
+			if (!isset($this->fileCache[$realName])) {
+				throw new Exception('File is not in the cache.');
+			}
+
+			$data = @file_get_contents($this->fileCache[$realName]);
+			if (false === $data) {
+				throw new Exception('Cached file is not readable.');
+			}
+			$file = @unserialize($data);
+			if (false === $file) {
+				throw new Exception('Stream could not be loaded from cache.');
+			}
+
+			return $file;
+		} catch (\Exception $e) {
+			throw new Exception(sprintf('Could not return token stream for file %s.', $fileName), 0, $e);
+		}
 	}
 
 	/**
@@ -49,28 +126,49 @@ class Backend extends Memory
 	 */
 	protected function parseClassLists()
 	{
+		$allClasses = array(
+			self::TOKENIZED_CLASSES => array(),
+			self::INTERNAL_CLASSES => array(),
+			self::NONEXISTENT_CLASSES => array()
+		);
+
 		$declared = array_flip(array_merge(get_declared_classes(), get_declared_interfaces()));
 
-		$allClasses = parent::parseClassLists();
-		foreach ($allClasses[self::TOKENIZED_CLASSES] as $name => $class) {
-			$class = new Reflection($class, $this->generator);
-			$allClasses[self::TOKENIZED_CLASSES][$name] = $class;
-			if (!$class->isDocumented()) {
-				continue;
-			}
-
-			foreach ($class->getOwnMethods() as $method) {
-				$allClasses = $this->processFunction($declared, $allClasses, $method);
-			}
-
-			foreach ($class->getOwnProperties() as $property) {
-				if (!$property->hasAnnotation('var')) {
+		foreach ($this->getNamespaces() as $namespace) {
+			foreach ($namespace->getClasses() as $name => $trClass) {
+				$class = new ReflectionClass($trClass, $this->generator);
+				$allClasses[self::TOKENIZED_CLASSES][$name] = $class;
+				if (!$class->isDocumented()) {
 					continue;
 				}
 
-				foreach ((array) $property->getAnnotation('var') as $doc) {
-					foreach (explode('|', preg_replace('#\s.*#', '', $doc)) as $name) {
-						$allClasses = $this->addClass($declared, $allClasses, $name);
+				foreach (array_merge($trClass->getParentClasses(), $trClass->getInterfaces()) as $parentName => $parent) {
+					if ($parent->isInternal()) {
+						if (!isset($allClasses[self::INTERNAL_CLASSES][$parentName])) {
+							$allClasses[self::INTERNAL_CLASSES][$parentName] = $parent;
+						}
+					} elseif (!$parent->isTokenized()) {
+						if (!isset($allClasses[self::NONEXISTENT_CLASSES][$parentName])) {
+							$allClasses[self::NONEXISTENT_CLASSES][$parentName] = $parent;
+						}
+					}
+				}
+
+				foreach ($class->getOwnMethods() as $method) {
+					$allClasses = $this->processFunction($declared, $allClasses, $method);
+				}
+
+				foreach ($class->getOwnProperties() as $property) {
+					$annotations = $property->getAnnotations();
+
+					if (!isset($annotations['var'])) {
+						continue;
+					}
+
+					foreach ($annotations['var'] as $doc) {
+						foreach (explode('|', preg_replace('#\s.*#', '', $doc)) as $name) {
+							$allClasses = $this->addClass($declared, $allClasses, $name);
+						}
 					}
 				}
 			}
@@ -81,8 +179,8 @@ class Backend extends Memory
 		}
 
 		array_walk_recursive($allClasses, function(&$reflection, $name, Generator $generator) {
-			if (!$reflection instanceof Reflection) {
-				$reflection = new Reflection($reflection, $generator);
+			if (!$reflection instanceof ReflectionClass) {
+				$reflection = new ReflectionClass($reflection, $generator);
 			}
 		}, $this->generator);
 
@@ -94,19 +192,21 @@ class Backend extends Memory
 	 *
 	 * @param array $declared Array of declared classes
 	 * @param array $allClasses Array with all classes parsed so far
-	 * @param TokenReflection\IReflectionFunctionBase $function Function/method reflection
+	 * @param \Apigen\ReflectionFunction|\TokenReflection\IReflectionFunctionBase $function Function/method reflection
 	 * @return array
 	 */
-	private function processFunction(array $declared, array $allClasses, TokenReflection\IReflectionFunctionBase $function)
+	private function processFunction(array $declared, array $allClasses, $function)
 	{
 		static $parsedAnnotations = array('param', 'return', 'throws');
 
 		foreach ($parsedAnnotations as $annotation) {
-			if (!$function->hasAnnotation($annotation)) {
+			$annotations = $function->getAnnotations();
+
+			if (!isset($annotations[$annotation])) {
 				continue;
 			}
 
-			foreach ((array) $function->getAnnotation($annotation) as $doc) {
+			foreach ($annotations[$annotation] as $doc) {
 				foreach (explode('|', preg_replace('#\s.*#', '', $doc)) as $name) {
 					$allClasses = $this->addClass($declared, $allClasses, $name);
 				}
@@ -139,55 +239,18 @@ class Backend extends Memory
 		}
 
 		$parameterClass = $this->getBroker()->getClass($name);
-		if ($parameterClass->isTokenized()) {
-			throw new RuntimeException(sprintf('Error. Trying to add a tokenized class %s. It should be already in the class list.', $name));
-		} elseif ($parameterClass->isInternal()) {
+		if ($parameterClass->isInternal()) {
 			$allClasses[self::INTERNAL_CLASSES][$name] = $parameterClass;
 			foreach (array_merge($parameterClass->getInterfaces(), $parameterClass->getParentClasses()) as $parentClass) {
 				if (!isset($allClasses[self::INTERNAL_CLASSES][$parentName = $parentClass->getName()])) {
 					$allClasses[self::INTERNAL_CLASSES][$parentName] = $parentClass;
 				}
 			}
-		} else {
+		} elseif (!$parameterClass->isTokenized() && !isset($allClasses[self::NONEXISTENT_CLASSES][$name])) {
 			$allClasses[self::NONEXISTENT_CLASSES][$name] = $parameterClass;
 		}
 
 		return $allClasses;
-	}
-
-	/**
-	 * Returns true if the given reflection should be documented, false if not.
-	 *
-	 * @param TokenReflection\IReflection $reflection Reflection object
-	 * @return boolean
-	 */
-	private function filterReflections(TokenReflection\IReflection $reflection)
-	{
-		if (!$this->generator->getConfig()->deprecated && $reflection->isDeprecated()) {
-			return false;
-		}
-		foreach ($this->generator->getConfig()->skipDocPath as $mask) {
-			if (fnmatch($mask, $reflection->getFilename(), FNM_NOESCAPE | FNM_PATHNAME)) {
-				return false;
-			}
-		}
-		foreach ($this->generator->getConfig()->skipDocPrefix as $prefix) {
-			if (0 === strpos($reflection->getName(), $prefix)) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	/**
-	 * Returns all functions from all namespaces.
-	 *
-	 * @return array
-	 */
-	public function getFunctions()
-	{
-		return array_filter(parent::getFunctions(), array($this, 'filterReflections'));
 	}
 
 	/**
@@ -197,6 +260,22 @@ class Backend extends Memory
 	 */
 	public function getConstants()
 	{
-		return array_filter(parent::getConstants(), array($this, 'filterReflections'));
+		$generator = $this->generator;
+		return array_map(function(IReflectionConstant $constant) use ($generator) {
+			return new ReflectionConstant($constant, $generator);
+		}, parent::getConstants());
+		}
+
+	/**
+	 * Returns all functions from all namespaces.
+	 *
+	 * @return array
+	 */
+	public function getFunctions()
+	{
+		$generator = $this->generator;
+		return array_map(function(IReflectionFunction $function) use ($generator) {
+			return new ReflectionFunction($function, $generator);
+		}, parent::getFunctions());
 	}
 }

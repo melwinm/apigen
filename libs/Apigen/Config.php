@@ -59,6 +59,7 @@ class Config
 		'templateDir' => '',
 		'allowedHtml' => array('b', 'i', 'a', 'ul', 'ol', 'li', 'p', 'br', 'var', 'samp', 'kbd', 'tt'),
 		'accessLevels' => array('public', 'protected'),
+		'internal' => false,
 		'php' => true,
 		'tree' => true,
 		'deprecated' => false,
@@ -95,12 +96,36 @@ class Config
 
 	/**
 	 * Initializes configuration.
-	 *
-	 * @param array $options Configuration options from the command line
 	 */
-	public function __construct(array $options)
+	public function __construct()
 	{
-		$this->options = $options;
+		$options = $_SERVER['argv'];
+		array_shift($options);
+
+		while ($option = current($options)) {
+			if (preg_match('~^--([a-z][-a-z]*[a-z])(?:=(.+))?$~', $option, $matches) || preg_match('~^-([a-z])=?(.*)~', $option, $matches)) {
+				$name = $matches[1];
+
+				if (!empty($matches[2])) {
+					$value = $matches[2];
+				} else {
+					$next = next($options);
+					if (false === $next || '-' === $next{0}) {
+						prev($options);
+						$value = true;
+					} else {
+						$value = $next;
+					}
+				}
+
+				$this->options[$name][] = $value;
+			}
+
+			next($options);
+		}
+		$this->options = array_map(function($value) {
+			return 1 === count($value) ? $value[0] : $value;
+		}, $this->options);
 
 		$this->config = self::$defaultConfig;
 		$this->config['templateDir'] = realpath(__DIR__ . '/../../templates');
@@ -113,7 +138,7 @@ class Config
 	 */
 	public function parse()
 	{
-		// Compatibility
+		// Compatibility with ApiGen 1.0
 		foreach (array('config', 'source', 'destination') as $option) {
 			if (isset($this->options[$option{0}]) && !isset($this->options[$option])) {
 				$this->options[$option] = $this->options[$option{0}];
@@ -136,6 +161,10 @@ class Config
 		}
 
 		foreach (self::$defaultConfig as $option => $valueDefinition) {
+			if (is_array($this->config[$option]) && !is_array($valueDefinition)) {
+				throw new Exception(sprintf('Option %s must be set only once', $option), Exception::INVALID_CONFIG);
+			}
+
 			if (is_bool($valueDefinition)) {
 				// Boolean option
 				$value = strtolower($this->config[$option]);
@@ -174,7 +203,7 @@ class Config
 						$value = realpath($value);
 					}
 				});
-				sort($this->config[$option]);
+				usort($this->config[$option], 'strcasecmp');
 			} else {
 				if (file_exists($this->config[$option])) {
 					$this->config[$option] = realpath($this->config[$option]);
@@ -187,13 +216,17 @@ class Config
 			$this->config[$option] = array_map(function($mask) {
 				return str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $mask);
 			}, $this->config[$option]);
+			usort($this->config[$option], 'strcasecmp');
 		}
 
 		// Unify prefixes
 		$this->config['skipDocPrefix'] = array_map(function($prefix) {
 			return ltrim($prefix, '\\');
 		}, $this->config['skipDocPrefix']);
-		sort($this->config['skipDocPrefix']);
+		usort($this->config['skipDocPrefix'], 'strcasecmp');
+
+		// Base url without slash at the end
+		$this->config['baseUrl'] = rtrim($this->config['baseUrl'], '/');
 
 		// No progressbar in quiet mode
 		if ($this->config['quiet']) {
@@ -263,12 +296,20 @@ class Config
 			throw new Exception('Template config doesn\'t exist', Exception::INVALID_CONFIG);
 		}
 
-		if (empty($this->config['accessLevels'])) {
-			throw new Exception('No supported access level given', Exception::INVALID_CONFIG);
+		if (!empty($this->config['baseUrl']) && !preg_match('~^https?://(?:[-a-z0-9]+\.)+[a-z]{2,6}(?:/.*)?$~i', $this->config['baseUrl'])) {
+			throw new Exception('Invalid base url', Exception::INVALID_CONFIG);
+		}
+
+		if (!empty($this->config['googleCse']) && !preg_match('~^\d{21}:[a-z0-9]{11}$~', $this->config['googleCse'])) {
+			throw new Exception('Invalid Google Custom Search ID', Exception::INVALID_CONFIG);
 		}
 
 		if (!empty($this->config['googleAnalytics']) && !preg_match('~^UA\\-\\d+\\-\\d+$~', $this->config['googleAnalytics'])) {
 			throw new Exception('Invalid Google Analytics tracking code', Exception::INVALID_CONFIG);
+		}
+
+		if (empty($this->config['accessLevels'])) {
+			throw new Exception('No supported access level given', Exception::INVALID_CONFIG);
 		}
 
 		if (!empty($this->config['plugin'])) {
@@ -327,7 +368,7 @@ class Config
 	}
 
 	/**
-	 * Checks it a configuration option exists.
+	 * Checks if a configuration option exists.
 	 *
 	 * @param string $name Option name
 	 * @return boolean
@@ -346,6 +387,16 @@ class Config
 	public function __get($name)
 	{
 		return isset($this->config[$name]) ? $this->config[$name] : null;
+	}
+
+	/**
+	 * If the user requests help.
+	 *
+	 * @return boolean
+	 */
+	public function isHelpRequested()
+	{
+		return empty($this->options) || isset($this->options['h']) || isset($this->options['help']);
 	}
 
 	/**
@@ -376,6 +427,7 @@ Options:
 	--template-dir     <dir>       Directory with templates, default "./templates"
 	--allowed-html     <list>      List of allowed HTML tags in documentation, default "b,i,a,ul,ol,li,p,br,var,samp,kbd,tt"
 	--access-levels    <list>      Generate documentation for methods and properties with given access level, default "public,protected"
+	--internal         <yes|no>    Generate documentation for elements marked as internal, default "no"
 	--php              <yes|no>    Generate documentation for PHP internal classes, default "yes"
 	--tree             <yes|no>    Generate tree view of classes, interfaces and exceptions, default "yes"
 	--deprecated       <yes|no>    Generate documentation for deprecated classes, methods, properties and constants, default "no"
@@ -390,10 +442,15 @@ Options:
 
 Only source and destination directories are required - either set explicitly or using a config file.
 
-Files or directories specified by --exclude will not be processed at all.
-Classes from files within --skip-doc-path or with --skip-doc-prefix will be parsed but will not have their documentation generated. However if they have any child classes, the full class tree will be generated and their inherited methods, properties and constants will be displayed (but will not be clickable).
+Boolean options (those with possible values yes|no) do not have to have their values defined explicitly. Using --debug and --debug=yes is exactly the same.
 
-You can provide filenames with your custom docblock tag processing helpers. Such helpers can registers for particular tags and their values will be passed to the appropriate helper when generating documentation. There can be only one helper for each tag. Every helper has to be a descendat of the \ApiGen\Helper class.
+Some options can have multiple values. You can do so either by using them multiple times or by separating values by a comma. That means that writing --source=file1.php --source=file2.php or --source=file1.php,file2.php is exactly the same.
+
+Files or directories specified by --exclude will not be processed at all.
+Classes from files within --skip-doc-path or with --skip-doc-prefix will be parsed but will not have
+their documentation generated. However if they have any child classes, the full class tree will be
+generated and their inherited methods, properties and constants will be displayed (but will not
+be clickable).
 
 Configuration parameters passed via command line have precedence over parameters from a config file.
 

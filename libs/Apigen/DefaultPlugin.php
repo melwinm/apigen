@@ -12,7 +12,7 @@
  */
 
 namespace Apigen;
-use Apigen\Plugin, Apigen\Reflection as ReflectionClass;
+use Apigen\Plugin;
 
 /**
  * Default Apigen plugin.
@@ -150,24 +150,28 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 	{
 		if (!empty($this->template->class)) {
 			$context = $this->template->class;
+		} elseif (!empty($this->template->constant)) {
+			$context = $this->template->constant;
+		} elseif (!empty($this->template->function)) {
+			$context = $this->template->function;
 		} else {
 			$context = $this->template->getContext();
 		}
 
 		switch ($tag) {
 			case 'package':
-					@list($packageName, $description) = preg_split('~\s+~', $value, 2);
+					list($packageName, $description) = $this->template->split($value);
 					return $this->template->packages
 						? '<a href="' . $this->template->getPackageUrl($packageName) . '">' . $this->template->escapeHtml($packageName) . '</a> ' . $this->template->escapeHtml($description)
 						: $this->template->escapeHtml($value);
 					break;
 				case 'subpackage':
 					if ($context->hasAnnotation('package')) {
-						list($packageName) = preg_split('~\s+~', $context->annotations['package'][0], 2);
+						list($packageName) = $this->template->split($context->annotations['package'][0]);
 					} else {
 						$packageName = '';
 					}
-					@list($subpackageName, $description) = preg_split('~\s+~', $value, 2);
+					list($packageName, $description) = $this->template->split($value);
 
 					return $this->template->packages && $packageName
 						? '<a href="' . $this->template->getPackageUrl($packageName . '\\' . $subpackageName) . '">' . $this->template->escapeHtml($subpackageName) . '</a> ' . $this->template->escapeHtml($description)
@@ -182,8 +186,12 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 				// Break missing on purpose
 			case 'see':
 			case 'uses':
-				return $this->template->resolveClassLink($value, $context) ?: $this->template->escapeHtml($value);
-				break;
+				list($link, $description) = $this->template->split($value);
+				$separator = $context instanceof ReflectionClass || !$description ? ' ' : '<br />';
+				if (null !== $this->template->resolveElement($link, $context)) {
+					return sprintf('<code>%s</code>%s%s', $this->template->getTypeLinks($link, $context), $separator, $description);
+				}
+				// Break missing on purpose
 			default:
 				return $this->template->escapeHtml($value);
 				break;
