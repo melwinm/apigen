@@ -26,6 +26,13 @@ use TokenReflection\IReflection;
 abstract class ReflectionBase
 {
 	/**
+	 * List of classes.
+	 *
+	 * @var \ArrayObject
+	 */
+	protected static $classes;
+
+	/**
 	 * Generator.
 	 *
 	 * @var \Apigen\Generator
@@ -44,7 +51,14 @@ abstract class ReflectionBase
 	 *
 	 * @var array
 	 */
-	private static $methods = array();
+	private static $reflectionMethods = array();
+
+	/**
+	 * Reflection type (reflection class).
+	 *
+	 * @var string
+	 */
+	private $reflectionType;
 
 	/**
 	 * Inspected class reflection.
@@ -58,7 +72,7 @@ abstract class ReflectionBase
 	 *
 	 * @var boolean
 	 */
-	private $isDocumented;
+	protected $isDocumented;
 
 	/**
 	 * Constructor.
@@ -73,8 +87,12 @@ abstract class ReflectionBase
 		if (null === self::$generator) {
 			self::$generator = $generator;
 			self::$config = $generator->getConfig();
+			self::$classes = $generator->getClasses();
+		}
 
-			self::$methods = array_flip(get_class_methods($this));
+		$this->reflectionType = get_class($this);
+		if (!isset(self::$reflectionMethods[$this->reflectionType])) {
+			self::$reflectionMethods[$this->reflectionType] = array_flip(get_class_methods($this));
 		}
 
 		$this->reflection = $reflection;
@@ -92,11 +110,11 @@ abstract class ReflectionBase
 	public function __get($name)
 	{
 		$key = ucfirst($name);
-		if (isset(self::$methods['get' . $key])) {
+		if (isset(self::$reflectionMethods[$this->reflectionType]['get' . $key])) {
 			return $this->{'get' . $key}();
 		}
 
-		if (isset(self::$methods['is' . $key])) {
+		if (isset(self::$reflectionMethods[$this->reflectionType]['is' . $key])) {
 			return $this->{'is' . $key}();
 		}
 
@@ -115,7 +133,7 @@ abstract class ReflectionBase
 	public function __isset($name)
 	{
 		$key = ucfirst($name);
-		return isset(self::$methods['get' . $key]) || isset(self::$methods['is' . $key]) || $this->reflection->__isset($name);
+		return isset(self::$reflectionMethods[$this->reflectionType]['get' . $key]) || isset(self::$reflectionMethods[$this->reflectionType]['is' . $key]) || $this->reflection->__isset($name);
 	}
 
 	/**
@@ -131,39 +149,26 @@ abstract class ReflectionBase
 	}
 
 	/**
-	 * Returns if the class should be documented.
+	 * Returns if the element should be documented.
 	 *
 	 * @return boolean
 	 */
 	public function isDocumented()
 	{
 		if (null === $this->isDocumented) {
-			if (self::$config->php && $this->reflection->isInternal()) {
-				$this->isDocumented = true;
-			} elseif (!$this->reflection->isTokenized()) {
-				$this->isDocumented = false;
-			} elseif (!self::$config->deprecated && $this->reflection->isDeprecated()) {
-				$this->isDocumented = false;
-			} elseif (!self::$config->internal && ($internal = $this->reflection->getAnnotation('internal')) && empty($internal[0])) {
-				$this->isDocumented = false;
-			} else {
-				$this->isDocumented = true;
-				foreach (self::$config->skipDocPath as $mask) {
-					if (fnmatch($mask, $this->reflection->getFilename(), FNM_NOESCAPE | FNM_PATHNAME)) {
-						$this->isDocumented = false;
-						break;
-					}
-				}
-				if (true === $this->isDocumented) {
-					foreach (self::$config->skipDocPrefix as $prefix) {
-						if (0 === strpos($this->reflection->getName(), $prefix)) {
-							$this->isDocumented = false;
-							break;
-						}
-					}
+			$this->isDocumented = $this->reflection->isTokenized() || $this->reflection->isInternal();
+
+			if ($this->isDocumented) {
+				if (!self::$config->php && $this->reflection->isInternal()) {
+					$this->isDocumented = false;
+				} elseif (!self::$config->deprecated && $this->reflection->isDeprecated()) {
+					$this->isDocumented = false;
+				} elseif (!self::$config->internal && ($internal = $this->reflection->getAnnotation('internal')) && empty($internal[0])) {
+					$this->isDocumented = false;
 				}
 			}
 		}
+
 		return $this->isDocumented;
 	}
 
