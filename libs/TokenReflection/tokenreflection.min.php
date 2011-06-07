@@ -1,4 +1,17 @@
 <?php
+/**
+ * PHP Token Reflection
+ *
+ * Version 1.0 beta 2
+ *
+ * LICENSE
+ *
+ * This source file is subject to the new BSD license that is bundled
+ * with this library in the file license.txt.
+ *
+ * @author Ondřej Nešpor <andrew@andrewsville.cz>
+ * @author Jaroslav Hanslík <kukulich@kukulich.cz>
+ */
  namespace TokenReflection\Broker{use TokenReflection;interface Backend{const TOKENIZED_CLASSES=1;const
 INTERNAL_CLASSES=2;const NONEXISTENT_CLASSES=4;public function getNamespace($namespaceName);public
 function getClass($className);public function getFunction($functionName);public function
@@ -575,7 +588,7 @@ function getInterfaces(){$interfaceNames=$this->getInterfaceNames();if(empty($in
 array();}$broker=$this->getBroker();return array_combine($interfaceNames,array_map(function($interfaceName)use($broker){return$broker->getClass($interfaceName);},$interfaceNames));}public
 function getMethod($name){if(isset($this->methods[$name])){return$this->methods[$name];}foreach($this->getMethods()as$method){if($name===$method->getName()){return$method;}}throw
 new Exception\Runtime(sprintf('There is no method "%s" in class "%s".',$name,$this->name),Exception\Runtime::DOES_NOT_EXIST);}public
-function getMethods($filter=null){$methods=$this->methods;if(null!==$this->parentClassName){foreach($this->getParentClass()->getMethods(null)as$parentMethod){if(!isset($methods[$parentMethod->getName()])){$methods[$parentMethod->getName()]=$parentMethod;}}}foreach($this->getOwnInterfaces()as$interface){foreach($interface->getMethods(null)as$parentMethod){if(!isset($methods[$parentMethod->getName()])){$methods[$parentMethod->getName()]=$parentMethod;}}}if(null!==$filter){$methods=array_filter($methods,function(ReflectionMethod$method)use($filter){return$method->is($filter);});}return
+function getMethods($filter=null){$methods=$this->methods;if(null!==$this->parentClassName){foreach($this->getParentClass()->getMethods(null)as$parentMethod){if(!isset($methods[$parentMethod->getName()])){$methods[$parentMethod->getName()]=$parentMethod;}}}foreach($this->getOwnInterfaces()as$interface){foreach($interface->getMethods(null)as$parentMethod){if(!isset($methods[$parentMethod->getName()])){$methods[$parentMethod->getName()]=$parentMethod;}}}if(null!==$filter){$methods=array_filter($methods,function(IReflectionMethod$method)use($filter){return$method->is($filter);});}return
 array_values($methods);}public function getModifiers(){if(false===$this->modifiersComplete){if(($this->modifiers&InternalReflectionClass::IS_EXPLICIT_ABSTRACT)&&!($this->modifiers&InternalReflectionClass::IS_IMPLICIT_ABSTRACT)){foreach($this->getMethods()as$reflectionMethod){if($reflectionMethod->isAbstract()){$this->modifiers|=InternalReflectionClass::IS_IMPLICIT_ABSTRACT;}}}if(count($this->getInterfaceNames())){$this->modifiers|=self::IMPLEMENTS_INTERFACES;}$this->modifiersComplete=true;foreach($this->getParentClasses()as$parentClass){if($parentClass
 instanceof Dummy\ReflectionClass){$this->modifiersComplete=false;break;}}}return$this->modifiers;}public
 function getNamespaceName(){return$this->namespaceName===ReflectionNamespace::NO_NAMESPACE_NAME?'':$this->namespaceName;}public
@@ -584,7 +597,7 @@ false;}return$this->getBroker()->getClass($className);}public function getParent
 array();}return array_merge(array($parent->getName()=>$parent),$parent->getParentClasses());}public
 function getParentClassNameList(){$parent=$this->getParentClass();if(false===$parent){return
 array();}return array_merge(array($parent->getName()),$parent->getParentClassNameList());}public
-function getParentClassName(){return$this->parentClassName;}public function getProperties($filter=null){$properties=$this->properties;if(null!==$this->parentClassName){foreach($this->getParentClass()->getProperties(null)as$parentProperty){if(!isset($properties[$parentProperty->getName()])){$properties[$parentProperty->getName()]=$parentProperty;}}}if(null!==$filter){$properties=array_filter($properties,function(ReflectionProperty$property)use($filter){return
+function getParentClassName(){return$this->parentClassName;}public function getProperties($filter=null){$properties=$this->properties;if(null!==$this->parentClassName){foreach($this->getParentClass()->getProperties(null)as$parentProperty){if(!isset($properties[$parentProperty->getName()])){$properties[$parentProperty->getName()]=$parentProperty;}}}if(null!==$filter){$properties=array_filter($properties,function(IReflectionProperty$property)use($filter){return
 (bool)($property->getModifiers()&$filter);});}return array_values($properties);}public
 function getProperty($name){if(isset($this->properties[$name])){return$this->properties[$name];}foreach($this->getProperties()as$property){if($name===$property->getName()){return$property;}}throw
 new Exception\Runtime(sprintf('There is no property "%s" in class "%s".',$name,$this->name),Exception\Runtime::DOES_NOT_EXIST);}public
