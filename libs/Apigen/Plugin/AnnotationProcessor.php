@@ -12,6 +12,8 @@
 
 namespace Apigen\Plugin;
 
+use Apigen;
+
 /**
  * Annotation processor.
  *
@@ -62,11 +64,14 @@ interface AnnotationProcessor extends Base
 	 * This function can alter the block tag name that will be displayed
 	 * in the documentation.
 	 *
+	 * If the function returns an empty string, the tag will be skipped.
+	 *
 	 * @param string $tag Tag name
 	 * @param integer $type Tag type
-	 * @return string
+	 * @param \ApiGen\ReflectionBase $element Documented reflection element
+	 * @return string|null
 	 */
-	public function getTagName($tag, $type);
+	public function getTagName($tag, $type, Apigen\ReflectionBase $element);
 
 	/**
 	 * Processes a tag value.
@@ -76,7 +81,8 @@ interface AnnotationProcessor extends Base
 	 * @param string $tag Tag name
 	 * @param integer $type Tag type
 	 * @param string $value Tag value
+	 * @param \ApiGen\ReflectionBase $element Documented reflection element
 	 * @return string
 	 */
-	public function getTagValue($tag, $type, $value);
+	public function getTagValue($tag, $type, $value, Apigen\ReflectionBase $element);
 }

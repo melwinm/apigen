@@ -12,6 +12,8 @@
 
 namespace Apigen\Plugin;
 
+use Apigen;
+
 /**
  * Source link plugin interface.
  *
@@ -24,11 +26,22 @@ namespace Apigen\Plugin;
 interface SourceLink extends Base
 {
 	/**
-	 * Returns an URL of a highlighted class source code.
+	 * Returns the filename (relative to the destination directory)
+	 * of a highlighted source code file.
 	 *
-	 * @param \Apigen\Reflection|\TokenReflection\IReflection $element Reflection instance
-	 * @param boolean $filesystemName Determines if a physical filename is requested
+	 * If the method returns null, no such file will be generated.
+	 *
+	 * @param \Apigen\ReflectionBase $element Reflection element
+	 * @return string|null
+	 */
+	public function getSourceFileName(Apigen\ReflectionBase $element);
+
+	/**
+	 * Returns URL (relative to the destination directory) of a highlighted
+	 * source code file including line anchors.
+	 *
+	 * @param \Apigen\ReflectionBase $element Reflection element
 	 * @return string
 	 */
-	public function getSourceLink($element, $filesystemName);
+	public function getSourceUrl(Apigen\ReflectionBase $element);
 }

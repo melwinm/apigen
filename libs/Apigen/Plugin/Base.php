@@ -12,6 +12,7 @@
  */
 
 namespace Apigen\Plugin;
+
 use Apigen;
 
 /**
