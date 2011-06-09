@@ -12,6 +12,7 @@
  */
 
 namespace Apigen;
+
 use Apigen\Plugin;
 
 /**
@@ -57,13 +58,13 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 	}
 
 	/**
-	 * Returns an URL of a highlighted class source code.
+	 * Returns the filename (relative to the destination directory)
+	 * of a highlighted source code file.
 	 *
-	 * @param \Apigen\Reflection|\TokenReflection\IReflection $element Reflection instance
-	 * @param boolean $filesystemName Determines if a physical filename is requested
-	 * @return string
+	 * @param \Apigen\ReflectionBase $element Reflection element
+	 * @return string|null
 	 */
-	public function getSourceLink($element, $filesystemName)
+	public function getSourceFileName(ReflectionBase $element)
 	{
 		$fileName = '';
 
@@ -83,17 +84,23 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 			$this->config->templates['main']['source']['filename'],
 			$fileName . preg_replace('#[^a-z0-9_]#i', '.', $elementName)
 		);
+	}
 
-		if ($filesystemName) {
-			return $fileName;
-		}
-
+	/**
+	 * Returns URL (relative to the destination directory) of a highlighted
+	 * source code file including line anchors.
+	 *
+	 * @param \Apigen\ReflectionBase $element Reflection element
+	 * @return string
+	 */
+	public function getSourceUrl(ReflectionBase $element)
+	{
 		$line = $element->getStartLine();
 		if ($doc = $element->getDocComment()) {
 			$line -= substr_count($doc, "\n") + 1;
 		}
 
-		return $fileName . '#' . $line;
+		return $this->getSourceFileName($element) . '#' . $line;
 	}
 
 	/**
@@ -104,11 +111,16 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 	public function getProcessedTags()
 	{
 		return array(
-			'package' => self::TYPE_BLOCK | self::TYPE_INLINE_SIMPLE,
-			'subpackage' => self::TYPE_BLOCK | self::TYPE_INLINE_SIMPLE,
+			'package' => self::TYPE_BLOCK,
+			'subpackage' => self::TYPE_BLOCK,
 			'see' => self::TYPE_BLOCK | self::TYPE_INLINE_SIMPLE,
 			'uses' => self::TYPE_BLOCK | self::TYPE_INLINE_SIMPLE,
 			'link' => self::TYPE_BLOCK | self::TYPE_INLINE_SIMPLE,
+			'var' => self::TYPE_BLOCK,
+			'param' => self::TYPE_BLOCK,
+			'return' => self::TYPE_BLOCK,
+			'throws' => self::TYPE_BLOCK,
+			'throw' => self::TYPE_BLOCK,
 
 			// ignored tags
 			'property-read' => self::TYPE_BLOCK,
@@ -130,71 +142,94 @@ class DefaultPlugin implements Plugin\SourceLink, Plugin\AnnotationProcessor
 	 *
 	 * @param string $tag Tag name
 	 * @param integer $type Tag type
-	 * @return string
+	 * @param \ApiGen\ReflectionBase $element Documented reflection element
+	 * @return string|null
 	 */
-	public function getTagName($tag, $type)
+	public function getTagName($tag, $type, ReflectionBase $element)
 	{
-		static $ignored = array('property', 'property-read', 'property-write', 'method', 'abstract', 'access', 'final', 'filesource', 'global', 'name', 'static', 'staticvar');
-		return in_array($tag, $ignored) ? '' : $tag;
+		static $ignored = array(
+			'property' => true,
+			'property-read' => true,
+			'property-write' => true,
+			'method' => true,
+			'abstract' => true,
+			'access' => true,
+			'final' => true,
+			'filesource' => true,
+			'global' => true,
+			'name' => true,
+			'static' => true,
+			'staticvar' => true
+		);
+
+		if (isset($ignored[$tag])) {
+			return '';
+		}
+
+		return $tag;
 	}
 
 	/**
 	 * Processes a tag value.
 	 *
+	 * Retrieves the tag value (if any) and returns its processed form.
+	 *
 	 * @param string $tag Tag name
 	 * @param integer $type Tag type
 	 * @param string $value Tag value
+	 * @param \ApiGen\ReflectionBase $element Documented reflection element
 	 * @return string
 	 */
-	public function getTagValue($tag, $type, $value)
+	public function getTagValue($tag, $type, $value, ReflectionBase $element)
 	{
-		if (!empty($this->template->class)) {
-			$context = $this->template->class;
-		} elseif (!empty($this->template->constant)) {
-			$context = $this->template->constant;
-		} elseif (!empty($this->template->function)) {
-			$context = $this->template->function;
-		} else {
-			$context = $this->template->getContext();
-		}
-
 		switch ($tag) {
 			case 'package':
-					list($packageName, $description) = $this->template->split($value);
-					return $this->template->packages
-						? '<a href="' . $this->template->getPackageUrl($packageName) . '">' . $this->template->escapeHtml($packageName) . '</a> ' . $this->template->escapeHtml($description)
-						: $this->template->escapeHtml($value);
-					break;
-				case 'subpackage':
-					if ($context->hasAnnotation('package')) {
-						list($packageName) = $this->template->split($context->annotations['package'][0]);
-					} else {
-						$packageName = '';
-					}
-					list($packageName, $description) = $this->template->split($value);
+				list($packageName, $description) = $this->template->split($value);
+				if ($this->template->packages) {
+					return $this->template->link($this->template->getPackageUrl($packageName), $packageName) . ' ' . $this->template->doc($description, $element);
+				}
+				break;
+			case 'subpackage':
+				if ($element->hasAnnotation('package')) {
+					list($packageName) = $this->template->split($element->annotations['package'][0]);
+				} else {
+					$packageName = '';
+				}
+				list($subpackageName, $description) = $this->template->split($value);
 
-					return $this->template->packages && $packageName
-						? '<a href="' . $this->template->getPackageUrl($packageName . '\\' . $subpackageName) . '">' . $this->template->escapeHtml($subpackageName) . '</a> ' . $this->template->escapeHtml($description)
-						: $this->template->escapeHtml($value);
-					break;
+				if ($this->template->packages && $packageName) {
+					return $this->template->link($this->template->getPackageUrl($packageName . '\\' . $subpackageName), $subpackageName) . ' ' . $this->template->doc($description, $element);
+				}
+				break;
+			case 'param':
+			case 'return':
+			case 'throws':
+			case 'throw':
+			case 'var':
+					$description = $this->template->description($value, $element);
+					return sprintf('<code>%s</code>%s', $this->template->getTypeLinks($value, $element), $description ? '<br />' . $description : '');
+				break;
+			case 'internal':
+				return $this->config->internal ? $this->template->escapeHtml($value) : '';
+				break;
 			case 'link':
+			case 'see':
 				if (false !== strpos($value, '://')) {
-					return sprintf('<a href="%1$s">%1$s</a>', $this->template->escapeHtml($value));
+					return $this->template->link($this->template->escapeHtml($value), $value);
 				} elseif (false !== strpos($value, '@')) {
-					return sprintf('<a href="mailto:%1$s">%1$s</a>', $this->template->escapeHtml($value));
+					return $this->template->link('mailto:' . $this->template->escapeHtml($value), $value);
 				}
 				// Break missing on purpose
-			case 'see':
 			case 'uses':
 				list($link, $description) = $this->template->split($value);
-				$separator = $context instanceof ReflectionClass || !$description ? ' ' : '<br />';
-				if (null !== $this->template->resolveElement($link, $context)) {
-					return sprintf('<code>%s</code>%s%s', $this->template->getTypeLinks($link, $context), $separator, $description);
+				$separator = $element instanceof ReflectionClass || !$description ? ' ' : '<br />';
+				if (null !== $this->template->resolveElement($link, $element)) {
+					return sprintf('<code>%s</code>%s%s', $this->template->getTypeLinks($link, $element), $separator, $description);
 				}
-				// Break missing on purpose
-			default:
+
 				return $this->template->escapeHtml($value);
-				break;
+			default:
+				throw new Exception(sprintf('Unsupported tag: %s', $tag));
 		}
 	}
 }
