@@ -982,6 +982,8 @@ class Generator extends Nette\Object
 					$template->functions = $namespaces[$namespaceName]['functions'];
 				}
 
+				Template::pushContext($element);
+
 				$template->class = null;
 				$template->constant = null;
 				$template->function = null;
@@ -1030,6 +1032,8 @@ class Generator extends Nette\Object
 
 					$this->incrementProgressBar();
 				}
+
+				Template::popContext();
 			}
 			unset($$type);
 		}

@@ -22,7 +22,7 @@
 		<b>Located at</b> <a n:tag-if="$config->sourceCode" href="{$function|sourceUrl}" title="Go to source code">{$fileName}</a><br>
 	</div>
 
-	{var $annotations => $template->getAnnotations($function)}
+	{var $annotations => $template->processBlockTags($function)}
 
 	<table class="summary" id="parameters" n:if="$function->numberOfParameters">
 	<caption>Parameters summary</caption>
@@ -30,7 +30,7 @@
 		<td width="1%" class="right"><code class="nowrap">
 			{if $parameter->array}array
 			{elseif $parameter->className}<a href="{$parameter->className|classUrl}" n:tag-if="$template->getClass($parameter->className)">{$parameter->className}</a>
-			{elseif isset($annotations['param'][$parameter->position])}{!$annotations['param'][$parameter->position]|typeLinks:$function}{/if}
+			{elseif isset($annotations['param'][$parameter->position])}{!$annotations['param'][$parameter->position]}{/if}
 		</code></td>
 		<td width="1%"><code class="nowrap">
 			<var>{if $parameter->passedByReference}&amp; {/if}${$parameter->name}</var>{if $parameter->defaultValueAvailable} = {!$parameter->defaultValueDefinition|highlightPHP:$function}{/if}
@@ -45,7 +45,7 @@
 	<caption>Return value summary</caption>
 	<tr>
 		<td width="1%" class="right"><code class="nowrap">
-			{!$annotations['return'][0]|typeLinks:$function}
+			{!$annotations['return'][0]}
 		</code></td>
 		<td>
 			{!$annotations['return'][0]|description:$function}
@@ -57,7 +57,7 @@
 	<caption>Thrown exceptions summary</caption>
 	<tr n:foreach="$annotations['throws'] as $throws">
 		<td width="1%" class="right"><code class="nowrap">
-			{!$throws|typeLinks:$function}
+			{!$throws}
 		</code></td>
 		<td>
 			{!$throws|description:$function}

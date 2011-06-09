@@ -13,7 +13,7 @@
 
 namespace Apigen;
 
-use Apigen\Plugin, TokenReflection, TokenReflection\Broker, Texy, ArrayAccess, ArrayObject;
+use Apigen\Plugin, TokenReflection, TokenReflection\Broker, Texy, ArrayObject;
 
 /**
  * Plugins loader.
@@ -33,14 +33,12 @@ class Plugins
 	 * Annotation processors identifier.
 	 */
 	const PLUGIN_ANNOTATION_PROCESSOR = 'processor';
-	/**#@-*/
 
 	/**
 	 * Regular expression for recursive extracting of inline tags.
-	 *
-	 * @var string
 	 */
-	const INLINE_TAGS_REGEX = '{@(\\w+)(?:(?:\\s++((?>(?R)|[^{}]+)*)})|})';
+	const INLINE_TAGS_REGEX = '{@(\\w+)(?:(?:\\s++(?>((?R))|([^{}]+))*})|})';
+	/**#@-*/
 
 	/**
 	 * Generator instance.
@@ -103,29 +101,41 @@ class Plugins
 	 * @param \TexyParser $parser Texy parser instance
 	 * @param array $matches Tag match definition
 	 * @param string $name Block name
-	 * @param integet $level Nesting level
+	 * @param integer $level Nesting level
 	 * @return string
 	 */
 	public function processInlineTag(\TexyParser $parser, $matches, $name, $level = 1)
 	{
-		list($original, $tag, $value) = $matches;
+		list($original, $tag, $nested, $single) = $matches;
 
-		if (isset($this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][Plugin\AnnotationProcessor::TYPE_INLINE_SIMPLE])) {
+		$plugin = null;
+		$type = !empty($nested) ? Plugin\AnnotationProcessor::TYPE_INLINE_WITH_CHILDREN : Plugin\AnnotationProcessor::TYPE_INLINE_SIMPLE;
+
+		if (Plugin\AnnotationProcessor::TYPE_INLINE_WITH_CHILDREN === $type) {
+			// Inline with children
+			if (isset($this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][$type])) {
+				$plugin = $this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][$type];
+			}
+
+			$value = $nested;
+		} else {
 			// Simple inline tag, no children
-			$plugin = $this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][Plugin\AnnotationProcessor::TYPE_INLINE_SIMPLE];
-			$type = Plugin\AnnotationProcessor::TYPE_INLINE_SIMPLE;
-		} elseif (isset($this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][Plugin\AnnotationProcessor::TYPE_INLINE_WITH_CHILDREN])) {
-			// Inline with possible children
-			$plugin = $this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][Plugin\AnnotationProcessor::TYPE_INLINE_WITH_CHILDREN];
-			$type = Plugin\AnnotationProcessor::TYPE_INLINE_WITH_CHILDREN;
-		} else  {
-			// No plugin found -> recursively process nested tags, but do not process the final value
-			$plugin = null;
+			if (isset($this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][$type])) {
+				$plugin = $this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][$type];
+			} elseif (isset($this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][Plugin\AnnotationProcessor::TYPE_INLINE_WITH_CHILDREN])) {
+				// No simple found, try with children
+				$plugin = $this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$tag][Plugin\AnnotationProcessor::TYPE_INLINE_WITH_CHILDREN];
+			}
+
+			$value = $single;
+		}
+
+		if (null === $plugin) {
 			$type = Plugin\AnnotationProcessor::TYPE_INLINE_WITH_CHILDREN;
 		}
 
 		if (null !== $plugin) {
-			$tagName = $plugin->getTagName($tag, $type);
+			$tagName = $plugin->getTagName($tag, $type, Template::getContext());
 			if ('' === $tagName) {
 				// Removing the tag
 				return '';
@@ -154,7 +164,7 @@ class Plugins
 		}
 
 		if (null !== $plugin) {
-			$value = $plugin->getTagValue($tag, $type, $value);
+			$value = $plugin->getTagValue($tag, $type, $value, Template::getContext());
 		} else {
 			$value = sprintf('{@%s%s%s}', $tag, empty($value) ? '' : ' ', $value);
 		}
@@ -164,14 +174,14 @@ class Plugins
 	/**
 	 * Processes block tags from elements documentation.
 	 *
-	 * @param \Apigen\Reflection|\TokenReflection\ReflectionBase $element Reflection instance
+	 * @param \Apigen\ReflectionBase $element Reflection instance
 	 * @param array $ignore Array of ignored annotations
 	 * @return array
 	 */
-	public function processBlockTags($element, $ignore = array())
+	public function processBlockTags(ReflectionBase $element, $ignore = array())
 	{
 		// Get raw annotations
-		$annotations = $this->getAnnotations($element);
+		$annotations = $element->getAnnotations();
 
 		if (!empty($ignore)) {
 			// Ignore given tags
@@ -191,7 +201,7 @@ class Plugins
 			static $order = array(
 				'deprecated' => 0, 'category' => 1, 'package' => 2, 'subpackage' => 3, 'copyright' => 4,
 				'license' => 5, 'author' => 6, 'version' => 7, 'since' => 8, 'see' => 9, 'uses' => 10,
-				'link' => 11, 'example' => 12, 'tutorial' => 13, 'todo' => 14
+				'link' => 11, 'internal' => 14, 'example' => 13, 'tutorial' => 14, 'todo' => 15
 			);
 
 			$orderA = isset($order[$a]) ? $order[$a] : 99;
@@ -206,7 +216,7 @@ class Plugins
 			// Find the appropriate plugin
 			if (isset($this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$searchName][Plugin\AnnotationProcessor::TYPE_BLOCK])) {
 				$plugin = $this->plugins[self::PLUGIN_ANNOTATION_PROCESSOR][$searchName][Plugin\AnnotationProcessor::TYPE_BLOCK];
-				$tagName = $plugin->getTagName($name, Plugin\AnnotationProcessor::TYPE_BLOCK);
+				$tagName = $plugin->getTagName($name, Plugin\AnnotationProcessor::TYPE_BLOCK, $element);
 
 				// Remove the particular annotation
 				if ('' === $tagName) {
@@ -215,7 +225,7 @@ class Plugins
 					$tagValues = array();
 					foreach ($values as $index => $value) {
 						// Set the processed values
-						$tagValues[$index] = $plugin->getTagValue($name, Plugin\AnnotationProcessor::TYPE_BLOCK, $value);
+						$tagValues[$index] = $plugin->getTagValue($name, Plugin\AnnotationProcessor::TYPE_BLOCK, $value, $element);
 					}
 
 
@@ -234,20 +244,6 @@ class Plugins
 		}
 
 		return $annotations;
-	}
-
-	/**
-	 * Returns an array of annotations from the given reflection instance.
-	 *
-	 * Adds custom annotations created by registered generator plugins.
-	 *
-	 * @param \Apigen\Reflection|\TokenReflection\IReflection $element Reflection instance
-	 * @return array
-	 */
-	public function getAnnotations($element)
-	{
-		return $element->getAnnotations();
-
 	}
 
 	/**
@@ -346,14 +342,24 @@ class Plugins
 	}
 
 	/**
-	 * Returns a link to a element source code page.
+	 * Returns a filename of the element source code page.
 	 *
-	 * @param \Apigen\Reflection|\TokenReflection\IReflectionMethod|\TokenReflection\IReflectionProperty|\TokenReflection\IReflectionConstant|\TokenReflection\IReflectionFunction $element Element reflection
-	 * @param boolean $filesystemName Determines if a physical filename is requested
+	 * @param \Apigen\ReflectionBase Element reflection
+	 * @return string|null
+	 */
+	public function getSourceFileName(ReflectionBase $element)
+	{
+		return $this->plugins[self::PLUGIN_SOURCELINK]->getSourceFileName($element);
+	}
+
+	/**
+	 * Returns an URL of the element source code page including the line number.
+	 *
+	 * @param \Apigen\ReflectionBase Element reflection
 	 * @return string
 	 */
-	public function getSourceUrl($element, $filesystemName = false)
+	public function getSourceUrl(ReflectionBase $element)
 	{
-		return $this->plugins[self::PLUGIN_SOURCELINK]->getSourceLink($element, $filesystemName);
+		return $this->plugins[self::PLUGIN_SOURCELINK]->getSourceUrl($element);
 	}
 }

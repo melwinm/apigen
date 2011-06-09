@@ -32,7 +32,7 @@ class Template extends Nette\Templating\FileTemplate
 	 *
 	 * @var array
 	 */
-	public static $contexts = array();
+	private static $contexts = array();
 
 	/**
 	 * Config.
@@ -123,9 +123,9 @@ class Template extends Nette\Templating\FileTemplate
 				 */
 				return '$iterations = 0; foreach ($iterator = $_l->its[] = new Nette\Iterators\CachingIterator('
 					. preg_replace('#(.*)\s+as\s+#i', '$1) as ', $writer->formatArgs(), 1) . '):'
-					. 'if (!$iterator->isFirst()) $template->popContext(); $template->context = $template->pushContext($iterator->current())';
+					. 'if (!$iterator->isFirst()) \Apigen\Template::popContext(); $template->context = \Apigen\Template::pushContext($iterator->current())';
 			},
-			'$iterations++; endforeach; $template->context = $template->popContext(); array_pop($_l->its); $iterator = end($_l->its);'
+			'$iterations++; endforeach; $template->context = \Apigen\Template::popContext(); array_pop($_l->its); $iterator = end($_l->its);'
 		);
 		$this->registerFilter($latte);
 
@@ -189,10 +189,10 @@ class Template extends Nette\Templating\FileTemplate
 			if ($context instanceof ReflectionParameter) {
 				$description = preg_replace('~^(\\$?' . $context->getName() . ')(\s+|$)~i', '\\2', $description, 1);
 			}
-			return $that->doc($description, $context);
+			return $that->doc($description);
 		});
 		$this->registerHelper('shortDescription', function($element) use ($that) {
-			return $that->doc($element->getAnnotation(ReflectionAnnotation::SHORT_DESCRIPTION), $element);
+			return $that->doc($element->getAnnotation(ReflectionAnnotation::SHORT_DESCRIPTION));
 		});
 		$this->registerHelper('longDescription', function($element) use ($that) {
 			$short = $element->getAnnotation(ReflectionAnnotation::SHORT_DESCRIPTION);
@@ -209,76 +209,7 @@ class Template extends Nette\Templating\FileTemplate
 					: $matches[0];
 			}, $short);
 
-			return $that->doc($short, $element, true);
-		});
-
-		// Individual annotations processing
-		$this->registerHelper('annotation', function($value, $name, $context) use ($that) {
-			switch ($name) {
-				case 'param':
-				case 'return':
-				case 'throws':
-					$description = $that->description($value, $context);
-					return sprintf('<code>%s</code>%s', $that->getTypeLinks($value, $context), $description ? '<br />' . $description : '');
-				case 'package':
-					list($packageName, $description) = $that->split($value);
-					if ($that->packages) {
-						return $that->link($that->getPackageUrl($packageName), $packageName) . ' ' . $that->doc($description, $context);
-					}
-					break;
-				case 'subpackage':
-					if ($context->hasAnnotation('package')) {
-						list($packageName) = $that->split($context->annotations['package'][0]);
-					} else {
-						$packageName = '';
-					}
-					list($subpackageName, $description) = $that->split($value);
-
-					if ($that->packages && $packageName) {
-						return $that->link($that->getPackageUrl($packageName . '\\' . $subpackageName), $subpackageName) . ' ' . $that->doc($description, $context);
-					}
-					break;
-				default:
-					break;
-			}
-
-			// Default
-			return $that->doc($value, $context);
-		});
-
-		$todo = $this->config->todo;
-		$internal = $this->config->internal;
-		$this->registerHelper('annotationFilter', function(array $annotations, array $filter = array()) use ($todo, $internal) {
-			// Custom filter
-			foreach ($filter as $annotation) {
-				unset($annotations[$annotation]);
-			}
-
-			// Show/hide internal
-			if (!$internal) {
-				unset($annotations['internal']);
-			}
-
-			// Show/hide todo
-			if (!$todo) {
-				unset($annotations['todo']);
-			}
-
-			return $annotations;
-		});
-
-		$this->registerHelper('annotationSort', function(array $annotations) {
-			uksort($annotations, function($a, $b) {
-				static $order = array(
-					'deprecated' => 0, 'category' => 1, 'package' => 2, 'subpackage' => 3, 'copyright' => 4,
-					'license' => 5, 'author' => 6, 'version' => 7, 'since' => 8, 'see' => 9, 'uses' => 10,
-					'link' => 11, 'internal' => 14, 'example' => 13, 'tutorial' => 14, 'todo' => 15
-				);
-				$orderA = isset($order[$a]) ? $order[$a] : 99;
-				$orderB = isset($order[$b]) ? $order[$b] : 99;
-				return $orderA - $orderB;
-			});
-			return $annotations;
+			return $that->doc($short, true);
 		});
 
 		// Static files versioning
@@ -314,41 +245,40 @@ class Template extends Nette\Templating\FileTemplate
 	 * Adds a context value to the stack.
 	 *
 	 * @param mixed $context Context value
-	 * @return \Apigen\Reflection|\TokenReflection\IReflection|null
+	 * @return \Apigen\ReflectionBase|null
 	 */
-	public function pushContext($context)
+	public static function pushContext($context)
 	{
-		array_unshift(self::$contexts, ($context instanceof ApiReflection || $context instanceof TokenReflection\IReflection) ? $context : null);
-		return $this->getContext();
+		array_unshift(self::$contexts, ($context instanceof ReflectionBase) ? $context : null);
+		return self::getContext();
 	}
 
 	/**
 	 * Removes a context from the stack.
 	 *
-	 * @return \Apigen\Reflection|\TokenReflection\IReflection|null
+	 * @return \Apigen\ReflectionBase|null
 	 */
-	public function popContext()
+	public static function popContext()
 	{
 		array_shift(self::$contexts);
-		return $this->getContext();
+		return self::getContext();
 	}
 
 	/**
 	 * Returns the current context.
 	 *
-	 * @return \Apigen\Reflection|\TokenReflection\IReflection|null
+	 * @return \Apigen\ReflectionBase|null
 	 */
-	public function getContext()
+	public static function getContext()
 	{
 		foreach (self::$contexts as $context) {
-			if ($context instanceof ApiReflection || $context instanceof TokenReflection\IReflection) {
+			if ($context instanceof ReflectionBase) {
 				return $context;
 			}
 		}
 
 		return null;
 	}
-
 
 	/**
 	 * Returns unified type value definition (class name or member data type).
@@ -508,33 +438,9 @@ class Template extends Nette\Templating\FileTemplate
 	 * @param boolean $withLine Include file line number into the link
 	 * @return string
 	 */
-	public function getSourceUrl($element, $withLine = true)
+	public function getSourceUrl(ReflectionBase $element)
 	{
-		$file = '';
-
-		if ($element instanceof ReflectionClass || $element instanceof ReflectionFunction || ($element instanceof ReflectionConstant && null === $element->getDeclaringClassName())) {
-			$elementName = $element->getName();
-
-			if ($element instanceof ReflectionFunction) {
-				$file = 'function-';
-			} elseif ($element instanceof ReflectionConstant) {
-				$file = 'constant-';
-			}
-		} else {
-			$elementName = $element->getDeclaringClassName();
-		}
-
-		$file .= $this->urlize($elementName);
-
-		$line = null;
-		if ($withLine) {
-			$line = $element->getStartLine();
-			if ($doc = $element->getDocComment()) {
-				$line -= substr_count($doc, "\n") + 1;
-			}
-		}
-
-		return sprintf($this->config->templates['main']['source']['filename'], $file) . (isset($line) ? "#$line" : '');
+		return $this->plugins->getSourceUrl($element);
 	}
 
 	/**
@@ -800,49 +706,15 @@ class Template extends Nette\Templating\FileTemplate
 	}
 
 	/**
-	 * Resolves links in documentation.
-	 *
-	 * @param string $text Processed documentation text
-	 * @param \Apigen\ReflectionBase $context Reflection object
-	 * @return string
-	 */
-	private function resolveLinks($text, $context)
-	{
-		$that = $this;
-		return preg_replace_callback('~{@(?:link|see)\\s+([^}]+)}~', function ($matches) use ($context, $that) {
-			return $that->resolveLink($matches[1], $context) ?: $matches[1];
-		}, $text);
-	}
-
-	/**
-	 * Resolves internal annotation.
-	 *
-	 * @param string $text
-	 * @return string
-	 */
-	private function resolveInternal($text)
-	{
-		$internal = $this->config->internal;
-		return preg_replace_callback('~\\{@(\\w+)(?:(?:\\s+((?>(?R)|[^{}]+)*)\\})|\\})~', function($matches) use ($internal) {
-			// Replace only internal
-			if ('internal' !== $matches[1]) {
-				return $matches[0];
-			}
-			return $internal && isset($matches[2]) ? $matches[2] : '';
-		}, $text);
-	}
-
-	/**
 	 * Formats text as documentation block or line.
 	 *
 	 * @param string $text Text
-	 * @param \Apigen\ReflectionBase $context Reflection object
 	 * @param boolean $block Parse text as block
 	 * @return string
 	 */
-	public function doc($text, $context, $block = false)
+	public function doc($text, $block = false)
 	{
-		return $this->resolveLinks($this->texy->process($this->resolveInternal($text), !$block), $context);
+		return $this->texy->process($text, !$block);
 	}
 
 	/**
@@ -890,16 +762,5 @@ class Template extends Nette\Templating\FileTemplate
 	public function processBlockTags($element, $ignore = array())
 	{
 		return $this->plugins->processBlockTags($element, $ignore);
-	}
-
-	/**
-	 * Returns an array of annotations from the given reflection instance.
-	 *
-	 * @param \Apigen\Reflection|\TokenReflection\IReflection $element Reflection instance
-	 * @return array
-	 */
-	public function getAnnotations($element)
-	{
-		return $this->plugins->getAnnotations($element);
 	}
 }
