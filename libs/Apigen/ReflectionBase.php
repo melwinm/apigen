@@ -33,6 +33,13 @@ abstract class ReflectionBase
 	protected static $classes;
 
 	/**
+	 * List of functions.
+	 *
+	 * @var \ArrayObject
+	 */
+	protected static $functions;
+
+	/**
 	 * Generator.
 	 *
 	 * @var \Apigen\Generator
@@ -88,6 +95,7 @@ abstract class ReflectionBase
 			self::$generator = $generator;
 			self::$config = $generator->getConfig();
 			self::$classes = $generator->getClasses();
+			self::$functions = $generator->getFunctions();
 		}
 
 		$this->reflectionType = get_class($this);
@@ -146,6 +154,16 @@ abstract class ReflectionBase
 	public function __call($name, $args)
 	{
 		return call_user_func_array(array($this->reflection, $name), $args);
+	}
+
+	/**
+	 * Returns if the class should be documented.
+	 *
+	 * @return boolean
+	 */
+	public function isMain()
+	{
+		return empty(self::$config->main) || 0 === strpos($this->reflection->getName(), self::$config->main);
 	}
 
 	/**

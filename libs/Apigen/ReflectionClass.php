@@ -298,6 +298,77 @@ class ReflectionClass extends ReflectionBase
 	}
 
 	/**
+	 * Returns a constant reflection.
+	 *
+	 * @param string $name Constant name
+	 * @return \Apigen\ReflectionConstant
+	 */
+	public function getConstant($name)
+	{
+		return $this->getConstantReflection($name);
+	}
+
+	/**
+	 * Checks if there is a constant of the given name.
+	 *
+	 * @param string $constantName Constant name
+	 * @return boolean
+	 */
+	public function hasConstant($constantName)
+	{
+		if (null === $this->constants) {
+			$this->getConstants();
+		}
+
+		return isset($this->constants[$constantName]);
+	}
+
+	/**
+	 * Checks if there is a constant of the given name.
+	 *
+	 * @param string $constantName Constant name
+	 * @return boolean
+	 */
+	public function hasOwnConstant($constantName)
+	{
+		if (null === $this->ownConstants) {
+			$this->getOwnConstants();
+		}
+
+		return isset($this->ownConstants[$constantName]);
+	}
+
+	/**
+	 * Returns a constant reflection.
+	 *
+	 * @param string $name Constant name
+	 * @return \Apigen\ReflectionConstant
+	 */
+	public function getOwnConstantReflection($name)
+	{
+		if (null === $this->ownConstants) {
+			$this->getOwnConstants();
+		}
+
+		if (isset($this->ownConstants[$name])) {
+			return $this->ownConstants[$name];
+		}
+
+		throw new \InvalidArgumentException(sprintf('Constant %s does not exist in class %s', $name, $this->reflection->getName()));
+	}
+
+	/**
+	 * Returns a constant reflection.
+	 *
+	 * @param string $name Constant name
+	 * @return \Apigen\ReflectionConstant
+	 */
+	public function getOwnConstant($name)
+	{
+		return $this->getOwnConstantReflection($name);
+	}
+
+	/**
 	 * Returns a parent class reflection encapsulated by this class.
 	 *
 	 * @return \Apigen\ReflectionClass
@@ -362,7 +433,7 @@ class ReflectionClass extends ReflectionBase
 		$subClasses = array();
 		$name = $this->reflection->getName();
 		foreach (self::$classes as $class) {
-			if (!$class->isSubclassOf($name)) {
+			if (!$class->isDocumented() || !$class->isSubclassOf($name)) {
 				continue;
 			}
 			if (null === $class->getParentClassName() || !$class->getParentClass()->isSubClassOf($name)) {
@@ -382,7 +453,7 @@ class ReflectionClass extends ReflectionBase
 		$subClasses = array();
 		$name = $this->reflection->getName();
 		foreach (self::$classes as $class) {
-			if (!$class->isSubclassOf($name)) {
+			if (!$class->isDocumented() || !$class->isSubclassOf($name)) {
 				continue;
 			}
 			if (null !== $class->getParentClassName() && $class->getParentClass()->isSubClassOf($name)) {
@@ -406,7 +477,7 @@ class ReflectionClass extends ReflectionBase
 		$implementers = array();
 		$name = $this->reflection->getName();
 		foreach (self::$classes as $class) {
-			if ($class->isInterface() || !$class->implementsInterface($name)) {
+			if (!$class->isDocumented() || $class->isInterface() || !$class->implementsInterface($name)) {
 				continue;
 			}
 			if (null === $class->getParentClassName() || !$class->getParentClass()->implementsInterface($name)) {
@@ -430,7 +501,7 @@ class ReflectionClass extends ReflectionBase
 		$implementers = array();
 		$name = $this->reflection->getName();
 		foreach (self::$classes as $class) {
-			if ($class->isInterface() || !$class->implementsInterface($name)) {
+			if (!$class->isDocumented() || $class->isInterface() || !$class->implementsInterface($name)) {
 				continue;
 			}
 			if (null !== $class->getParentClassName() && $class->getParentClass()->implementsInterface($name)) {
@@ -520,21 +591,6 @@ class ReflectionClass extends ReflectionBase
 	}
 
 	/**
-	 * Checks if there is a constant of the given name.
-	 *
-	 * @param string $constantName Constant name
-	 * @return boolean
-	 */
-	public function hasConstant($constantName)
-	{
-		if (null === $this->constants) {
-			$this->getConstants();
-		}
-
-		return isset($this->constants[$constantName]);
-	}
-
-	/**
 	 * Checks if there is a property of the given name.
 	 *
 	 * @param string $propertyName Property name
@@ -550,6 +606,21 @@ class ReflectionClass extends ReflectionBase
 	}
 
 	/**
+	 * Checks if there is a property of the given name.
+	 *
+	 * @param string $propertyName Property name
+	 * @return boolean
+	 */
+	public function hasOwnProperty($propertyName)
+	{
+		if (null === $this->ownProperties) {
+			$this->getOwnProperties();
+		}
+
+		return isset($this->ownProperties[$propertyName]);
+	}
+
+	/**
 	 * Checks if there is a method of the given name.
 	 *
 	 * @param string $methodName Method name
@@ -562,6 +633,21 @@ class ReflectionClass extends ReflectionBase
 		}
 
 		return isset($this->methods[$methodName]);
+	}
+
+	/**
+	 * Checks if there is a method of the given name.
+	 *
+	 * @param string $methodName Method name
+	 * @return boolean
+	 */
+	public function hasOwnMethod($methodName)
+	{
+		if (null === $this->ownMethods) {
+			$this->getOwnMethods();
+		}
+
+		return isset($this->ownMethods[$methodName]);
 	}
 
 	/**

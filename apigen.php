@@ -21,9 +21,11 @@ require __DIR__ . '/libs/Apigen/Template.php';
 require __DIR__ . '/libs/Apigen/ReflectionBase.php';
 require __DIR__ . '/libs/Apigen/ReflectionClass.php';
 require __DIR__ . '/libs/Apigen/ReflectionConstant.php';
+require __DIR__ . '/libs/Apigen/ReflectionFunctionBase.php';
 require __DIR__ . '/libs/Apigen/ReflectionFunction.php';
 require __DIR__ . '/libs/Apigen/ReflectionMethod.php';
 require __DIR__ . '/libs/Apigen/ReflectionProperty.php';
+require __DIR__ . '/libs/Apigen/ReflectionParameter.php';
 require __DIR__ . '/libs/Apigen/Backend.php';
 require __DIR__ . '/libs/Apigen/Generator.php';
 require __DIR__ . '/libs/Apigen/Tree.php';
@@ -34,6 +36,7 @@ require __DIR__ . '/libs/Apigen/Plugin/AnnotationProcessor.php';
 
 try {
 
+	Nette\Diagnostics\Debugger::$strictMode = true;
 	Nette\Diagnostics\Debugger::enable();
 	Nette\Diagnostics\Debugger::timer();
 
@@ -68,8 +71,7 @@ try {
 	$generator->output(vsprintf("Documentation for %d classes, %d constants, %d functions and other %d used PHP internal classes will be generated\n", array_slice($parsed, 4, 4)));
 
 	// Generating
-	$generator->output(sprintf("Searching template in %s\n", $config->templateDir));
-	$generator->output(sprintf("Using template %s\n", $config->template));
+	$generator->output(sprintf("Using template config file %s\n", $config->templateConfig));
 
 	if ($config->wipeout && is_dir($config->destination)) {
 		$generator->output("Wiping out destination directory\n");
