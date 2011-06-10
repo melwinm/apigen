@@ -37,7 +37,7 @@ class Generator extends Nette\Object
 	 *
 	 * @var string
 	 */
-	const VERSION = '2.0 beta 3';
+	const VERSION = '2.0 RC';
 
 	/**
 	 * Configuration.
@@ -66,6 +66,13 @@ class Generator extends Nette\Object
 	 * @var \ArrayObject
 	 */
 	private $functions = null;
+
+	/**
+	 * List of symlinks.
+	 *
+	 * @var array
+	 */
+	private $symlinks = array();
 
 	/**
 	 * Progressbar settings and status.
@@ -106,10 +113,16 @@ class Generator extends Nette\Object
 	public function parse()
 	{
 		$files = array();
+
+		$flags = \RecursiveDirectoryIterator::CURRENT_AS_FILEINFO | \RecursiveDirectoryIterator::SKIP_DOTS;
+		if (defined('\RecursiveDirectoryIterator::FOLLOW_SYMLINKS')) {
+			// Available from PHP 5.3.1
+			$flags |= \RecursiveDirectoryIterator::FOLLOW_SYMLINKS;
+		}
 		foreach ($this->config->source as $source) {
 			$entries = array();
 			if (is_dir($source)) {
-				foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source)) as $entry) {
+				foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, $flags)) as $entry) {
 					if (!$entry->isFile()) {
 						continue;
 					}
@@ -130,6 +143,9 @@ class Generator extends Nette\Object
 				}
 
 				$files[$entry->getPathName()] = $entry->getSize();
+				if ($entry->getPathName() !== $entry->getRealPath()) {
+					$this->symlinks[$entry->getRealPath()] = $entry->getPathName();
+				}
 			}
 		}
 
@@ -275,7 +291,7 @@ class Generator extends Nette\Object
 	 */
 	public function generate()
 	{
-		@mkdir($this->config->destination);
+		@mkdir($this->config->destination, 0755, true);
 		if (!is_dir($this->config->destination) || !is_writable($this->config->destination)) {
 			throw new Exception(sprintf('Directory %s isn\'t writable.', $this->config->destination));
 		}
@@ -954,10 +970,13 @@ class Generator extends Nette\Object
 			foreach ($$type as $element) {
 				if ($element->isTokenized()) {
 					$template->fileName = null;
-					$file = $element->getFileName();
+					$fileName = $element->getFileName();
+					if (isset($this->symlinks[$fileName])) {
+						$fileName = $this->symlinks[$fileName];
+					}
 					foreach ($this->config->source as $source) {
-						if (0 === strpos($file, $source)) {
-							$template->fileName = is_dir($source) ? str_replace('\\', '/', substr($file, strlen($source) + 1)) : basename($file);
+						if (0 === strpos($fileName, $source)) {
+							$template->fileName = is_dir($source) ? str_replace('\\', '/', substr($fileName, strlen($source) + 1)) : basename($fileName);
 							break;
 						}
 					}
