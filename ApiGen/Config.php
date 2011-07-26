@@ -63,6 +63,7 @@ class Config
 		'tree' => true,
 		'deprecated' => false,
 		'todo' => false,
+		'highlightApis' => true,
 		'sourceCode' => true,
 		'undocumented' => '',
 		'wipeout' => true,

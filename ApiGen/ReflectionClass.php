@@ -676,4 +676,10 @@ class ReflectionClass extends ReflectionBase
 
 		return $this->isDocumented;
 	}
+
+	public function isApiClass()
+	{
+		return $this->isDocumented() && $this->hasAnnotation('api');
+	}
+
 }

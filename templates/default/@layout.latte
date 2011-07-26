@@ -31,43 +31,31 @@
 <body>
 <div id="left">
 	<div id="menu">
+
 		<a n:tag-if="'overview' !== $active" href="index.html" title="Overview"><span>Overview</span></a>
+		<br />
+		
+		<a class="filterMenu" href="#">show only API classes</a>
 
 		<div id="groups">
 			{if $packages}
 			<h3>Packages</h3>
-			<ul>
-				{foreach $packages as $item}
-				<li n:class="$package === $item || 0 === strpos($package, $item . '\\') ? active, $config->main && 0 === strpos($item, $config->main) ? main"><a href="{$item|packageUrl}">{$template->subpackageName($item) ?: $item}</a>
-					{if substr_count($iterator->nextValue, '\\') > substr_count($item, '\\')}
-						<span></span>
-						<ul>
-					{else}
-						</li>
-						{if substr_count($iterator->nextValue, '\\') < substr_count($item, '\\')}
-							{!'</ul></li>'|repeat:substr_count($item, '\\') - substr_count($iterator->nextValue, '\\')}
-						{/if}
-					{/if}
-				{/foreach}
-			</ul>
+			<div class="allGroupItems">
+				{include 'menuGroupList.latte',
+					items => $packages,
+					currentItem => $package,
+					urlHelper => 'packageUrl',
+					subNameHelper => 'subpackageName'}
+			</div>
 			{/if}
 
 			{if $namespaces}
 			<h3>Namespaces</h3>
-			<ul>
-				{foreach $namespaces as $item}
-				<li n:class="$namespace === $item || 0 === strpos($namespace, $item . '\\') ? active, $config->main && 0 === strpos($item, $config->main) ? main"><a href="{$item|namespaceUrl}">{$item|subnamespaceName}</a>
-					{if substr_count($iterator->nextValue, '\\') > substr_count($item, '\\')}
-						<span></span>
-						<ul>
-					{else}
-						</li>
-						{if substr_count($iterator->nextValue, '\\') < substr_count($item, '\\')}
-							{!'</ul></li>'|repeat:substr_count($item, '\\') - substr_count($iterator->nextValue, '\\')}
-						{/if}
-					{/if}
-				{/foreach}
-			</ul>
+				{include 'menuGroupList.latte',
+					items => $namespaces,
+					currentItem => $namespace,
+					urlHelper => "namespaceUrl",
+					subNameHelper => "subnamespaceName"}
 			{/if}
 		</div>
 
@@ -77,7 +65,7 @@
 			{if $classes}
 			<h3>Classes</h3>
 			<ul>
-				<li n:foreach="$classes as $item" n:class="$class === $item ? active"><a href="{$item|classUrl}">{if $namespace}{$item->shortName}{else}{$item->name}{/if}</a></li>
+				<li n:foreach="$classes as $item" n:class="$class === $item ? active" n:class="$item->isApiClass() == true ? api"><a href="{$item|classUrl}">{if $namespace}{$item->shortName}{else}{$item->name}{/if}</a></li>
 			</ul>
 			{/if}
 

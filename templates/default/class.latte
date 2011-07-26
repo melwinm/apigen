@@ -5,7 +5,7 @@
 
 {block #content}
 <div id="content">
-	<h1>{if $class->deprecated}Deprecated {/if}{if $class->interface}Interface{else}Class{/if} {$class->shortName}</h1>
+	<h1 {if $class->isApiClass()}class="api"{/if}>{if $class->deprecated}Deprecated {/if}{if $class->interface}Interface{else}Class{/if} {$class->shortName}</h1>
 
 	<div class="description" n:if="$template->longDescription($class)">
 	{!$class|longDescription}

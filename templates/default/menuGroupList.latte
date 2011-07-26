@@ -1,0 +1,17 @@
+<ul>
+  {foreach $items as $item}
+  <li n:class="$currentItem === $item || 0 === strpos($currentItem, $item . '\\') ? active, $config->main && 0 === strpos($item, $config->main) ? main">
+		<a href="{$template->$urlHelper($item)}">
+    	{$template->$subNameHelper($item) ?: $item}
+   	</a>
+    {if substr_count($iterator->nextValue, '\\') > substr_count($item, '\\')}
+      <span></span>
+      <ul>
+    {else}
+      </li>
+      {if substr_count($iterator->nextValue, '\\') < substr_count($item, '\\')}
+        {!'</ul></li>'|repeat:substr_count($item, '\\') - substr_count($iterator->nextValue, '\\')}
+      {/if}
+    {/if}
+  {/foreach}
+</ul>

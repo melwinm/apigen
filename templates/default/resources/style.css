@@ -130,6 +130,14 @@ code a b {
 	position: relative;
 }
 
+#menu li.api {
+  background-image: url('iconApiSmall.png');
+  background-position: right;
+  background-repeat: no-repeat;
+  border-bottom: 1px dotted #C1D9FF;
+  padding-right: 23px;
+}
+
 #menu .active > a, #menu > span {
 	color: #333333;
 	background: none;
@@ -290,6 +298,13 @@ code a b {
 /**
  * Content
  */
+h1.api {
+	background-image: url('iconApiLarge.png');
+	background-position: left;
+	background-repeat: no-repeat;
+	padding-left: 60px;
+}
+
 #content {
 	clear: both;
 	padding: 5px 15px;
