@@ -1,4 +1,4 @@
 alert('hallo');
 function b() {}
 var foo = "baz";
-function a() {}  
+function a(B) {}
