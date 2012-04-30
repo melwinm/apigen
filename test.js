@@ -16,8 +16,8 @@
 (function( window, undefined ) {
 
 // Use the correct document accordingly with window argument (sandbox)
-var document = window.document,
-	navigator = window.navigator,
+var document2 = window.document,
+	navigator2 = window.navigator,
 	location = window.location;
 var jQuery = (function() {
 
@@ -8523,7 +8523,7 @@ jQuery.fn.extend({
 
 					// not quite $.extend, this wont overwrite keys already present.
 					// also - reusing 'p' from above because we have the correct "name"
-					for ( p in replace ) {
+					for ( p5 in replace ) {
 						if ( ! ( p in prop ) ) {
 							prop[ p ] = replace[ p ];
 						}
