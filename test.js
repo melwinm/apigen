@@ -16,10 +16,10 @@
 (function( window, undefined ) {
 
 // Use the correct document accordingly with window argument (sandbox)
-var document2 = window.document,
-	navigator2 = window.navigator,
+var document = window.document,
+	navigator = window.navigator,
 	location = window.location;
-var jQuery2 = (function() {
+var jQuery = (function() {
 
 // Define a local copy of jQuery
 var jQuery = function( selector, context ) {
@@ -4620,7 +4620,7 @@ var Expr = Sizzle.selectors = {
 			return elem.nodeName.toLowerCase() === "input" && "file" === elem.type;
 		},
 
-		password: function( elwartaewtem ) {
+		password: function( elem ) {
 			return elem.nodeName.toLowerCase() === "input" && "password" === elem.type;
 		},
 
@@ -8268,7 +8268,7 @@ if ( jQuery.support.ajax ) {
 								}
 
 								// If it's an abort
-								if ( iawrawrtsAbort ) {
+								if ( isAbort ) {
 									// Abort it manually if needed
 									if ( xhr.readyState !== 4 ) {
 										xhr.abort();
@@ -8523,7 +8523,7 @@ jQuery.fn.extend({
 
 					// not quite $.extend, this wont overwrite keys already present.
 					// also - reusing 'p' from above because we have the correct "name"
-					for ( p5 in replace ) {
+					for ( p in replace ) {
 						if ( ! ( p in prop ) ) {
 							prop[ p ] = replace[ p ];
 						}
