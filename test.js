@@ -19,7 +19,7 @@
 var document2 = window.document,
 	navigator2 = window.navigator,
 	location = window.location;
-var jQuery = (function() {
+var jQuery2 = (function() {
 
 // Define a local copy of jQuery
 var jQuery = function( selector, context ) {
@@ -4620,7 +4620,7 @@ var Expr = Sizzle.selectors = {
 			return elem.nodeName.toLowerCase() === "input" && "file" === elem.type;
 		},
 
-		password: function( elem ) {
+		password: function( elwartaewtem ) {
 			return elem.nodeName.toLowerCase() === "input" && "password" === elem.type;
 		},
 
@@ -8268,7 +8268,7 @@ if ( jQuery.support.ajax ) {
 								}
 
 								// If it's an abort
-								if ( isAbort ) {
+								if ( iawrawrtsAbort ) {
 									// Abort it manually if needed
 									if ( xhr.readyState !== 4 ) {
 										xhr.abort();
